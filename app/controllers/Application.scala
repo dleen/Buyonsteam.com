@@ -14,6 +14,11 @@ import scala.collection.JavaConversions._
 
 object Application extends Controller {
 
+  class Game(Name: String , Price: String, Date: String) 
+    {
+      
+    }
+
   val steamStoreHead =
     "http://store.steampowered.com/search/?snr=1_4_4__12&term=#sort_by=&sort_order=ASC&page="
 
@@ -46,6 +51,22 @@ object Application extends Controller {
     
     List(searchNames, searchPrices, searchReleases)
    /* List(searchNames, searchPrices, searchReleases, searchPrices)*/
+  }
+
+
+  def returnPageNGame(pageN: Int, urlHead: String): List[Game] = { 
+    val doc = Jsoup.connect(urlHead + pageN.toString).get()
+    val searchResults = doc.getElementsByClass("search_result_row")
+
+    val games = List()
+
+    for( price <- searchResults.map(_.select("div.search_price").text);
+	 date <- searchResults.map(_.select("div.search_released").text);
+	 name <- searchResults.map(_.select("div.search_name").text)
+      ) { games  ++ List(new Game(name,date,price))  }
+ 
+   games
+
   }
 
 

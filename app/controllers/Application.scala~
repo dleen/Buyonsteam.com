@@ -14,6 +14,11 @@ import scala.collection.JavaConversions._
 
 object Application extends Controller {
 
+  class Game(val Name, val Price, val Date) = 
+    {
+      
+    }
+
   val steamStoreHead =
     "http://store.steampowered.com/search/?snr=1_4_4__12&term=#sort_by=&sort_order=ASC&page="
 
@@ -30,6 +35,39 @@ object Application extends Controller {
 
     searchResults.map(_.select("a[href]").text).toList
   }
+
+/* Data is returned as a List of Lists. 
+ * A List contains either names, prices, release dates or image data.
+ * */
+  def returnPageNList(pageN: Int, urlHead: String): List[List[String]] = { 
+    val doc = Jsoup.connect(urlHead + pageN.toString).get()
+    val searchResults = doc.getElementsByClass("search_result_row")
+
+    val searchPrices = searchResults.map(_.select("div.search_price").text).toList
+    val searchReleases = searchResults.map(_.select("div.search_released").text).toList
+    val searchNames = searchResults.map(_.select("div.search_name").text).toList
+// TODO - Store information for holding image data - width, height and src    
+//val searchPrices = searchResults.map(_.select("div.search_").text).toList                                                                                                          
+    
+    List(searchNames, searchPrices, searchReleases)
+   /* List(searchNames, searchPrices, searchReleases, searchPrices)*/
+  }
+
+
+  def returnPageNGame(pageN: Int, urlHead: String): List[Game] = { 
+    val doc = Jsoup.connect(urlHead + pageN.toString).get()
+    val searchResults = doc.getElementsByClass("search_result_row")
+
+    val games = List[Game]
+
+    for(val price <- searchResults.map(_.select("div.search_price").text)
+	val date <- searchResults.map(_.select("div.search_released").text)
+	val name <- searchResults.map(_.select("div.search_name").text)
+	games <- new game(name,date,price)
+      ) { }
+    games
+  }
+
 
   val textResults = returnPageN(1, steamStoreHead)
 
