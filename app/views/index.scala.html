@@ -1,0 +1,11 @@
+@(message: List[String])
+
+@main("Welcome to Play 2.0") {
+    
+    <ul>
+	@message.map { message =>
+	<li>@message</li> 
+	  }
+</ul>
+    
+}
