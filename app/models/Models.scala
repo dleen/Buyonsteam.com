@@ -9,39 +9,50 @@ import anorm._
 import anorm.SqlParser._
 
 case class Game(id: Pk[Long] = NotAssigned, steamId: Option[Int],
-  gameName: String, url: String, imgUrl: String,
+  name: String, url: String, imgUrl: String,
   releaseDate: String, metaCritic: Option[Int])
 
-case class PriceHistory(id: Pk[Long] = NotAssigned, gameName: String,
+case class PriceHistory(id: Pk[Long] = NotAssigned, name: String,
   priceOnSteam: Option[Double], priceOnAmazon: Option[Double],
-  dateRecorded: Date)
+  dateRecorded: Date, gameId: Option[Int])
 
 object Game {
 
   // Parse a game from a ResultSet
-  // TODO
+  val simple = {
+	  get[Pk[Long]]("games.id") ~
+      get[Option[Int]]("games.steam_id") ~
+      get[String]("games.name") ~
+      get[String]("games.url") ~
+      get[String]("games.img_url") ~
+      get[String]("games.release_date") ~
+      get[Option[Int]]("games.meta_critic") map {
+        case id ~ steamId ~ name ~ url ~ imgUrl ~ releaseDate ~ metaCritic =>
+          Game(id, steamId, name, url, imgUrl, releaseDate, metaCritic)
+      }
+  }
 
   // Retrieve a game by name
 
   // Retrieve a game by id
 
   // Insert a new game.
-  def insert(thisGame: Game) = {
+  def insert(thatGame: Game) = {
     DB.withConnection { implicit connection =>
       SQL(
         """
           insert into games 
-          (steam_id, game_name, url, img_url, release_date, meta_critic)
+          (steam_id, name, url, img_url, release_date, meta_critic)
           values (
-          {steam_id}, {game_name}, {url}, {img_url}, {release_date}, {meta_critic}
+          {steam_id}, {name}, {url}, {img_url}, {release_date}, {meta_critic}
           )
         """).on(
-          'steam_id -> thisGame.steamId,
-          'game_name -> thisGame.gameName,
-          'url -> thisGame.url,
-          'img_url -> thisGame.imgUrl,
-          'release_date -> thisGame.releaseDate,
-          'meta_critic -> thisGame.metaCritic).executeUpdate()
+          'steam_id -> thatGame.steamId,
+          'name -> thatGame.name,
+          'url -> thatGame.url,
+          'img_url -> thatGame.imgUrl,
+          'release_date -> thatGame.releaseDate,
+          'meta_critic -> thatGame.metaCritic).executeUpdate()
     }
   }
 
@@ -49,22 +60,35 @@ object Game {
 
 object PriceHistory {
 
+  // Parse a price history from a ResultSet
+  val simple = {
+	  get[Pk[Long]]("price_history.id") ~
+      get[String]("price_history.name") ~
+      get[Option[Double]]("price_history.price_on_steam") ~
+      get[Option[Double]]("price_history.price_on_amazon") ~
+      get[Date]("price_history.date_recorded") ~
+      get[Option[Int]]("price_history.game_id") map {
+        case id ~ name ~ priceOnSteam ~ priceOnAmazon ~ dateRecorded ~ gameId =>
+          PriceHistory(id, name, priceOnSteam, priceOnAmazon, dateRecorded, gameId)
+      }
+  }
+  
   // Insert a price date pair
-  def insert(thisHistory: PriceHistory) = {
+  def insert(thatHistory: PriceHistory) = {
     DB.withConnection { implicit connection =>
       SQL(
         """
 	        insert into price_history 
-	        (price_on_steam, price_on_amazon, date_recorded, game_id) 
+	        (name, price_on_steam, price_on_amazon, date_recorded, game_id) 
 	        values (
-            {game_name}, {price_on_steam}, {price_on_amazon}, {date_recorded}, 
-	        (select id from games where game_name = {game_name})
+            {name}, {price_on_steam}, {price_on_amazon}, {date_recorded}, 
+	        (select id from games where name = {name})
 	        )
 	     """).on(
-          'price_on_steam -> thisHistory.priceOnSteam,
-          'price_on_amazon -> thisHistory.priceOnAmazon,
-          'date_recorded -> new Date(),
-          'game_name -> thisHistory.gameName).executeUpdate()
+          'name -> thatHistory.name,
+          'price_on_steam -> thatHistory.priceOnSteam,
+          'price_on_amazon -> thatHistory.priceOnAmazon,
+          'date_recorded -> thatHistory.dateRecorded).executeUpdate()
     }
   }
 }

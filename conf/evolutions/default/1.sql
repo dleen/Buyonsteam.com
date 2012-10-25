@@ -4,26 +4,26 @@
 
 create table games (
 	id				serial not null primary key,
-	steam_id		int,
-	game_name		varchar(255) not null,
+	steam_id		int unique check (steam_id > 0),
+	name			varchar(255) not null unique,
 	url				varchar(255) not null,
 	img_url			varchar(255) not null,
 	release_date	varchar(255) not null,
-	meta_critic		int
+	meta_critic		int check (meta_critic > 0)
 );
 
 create table price_history (
 	id				serial not null primary key,
-	game_name		varchar(255) not null,
-	price_on_steam	numeric,
-	price_on_amazon	numeric,
+	name			varchar(255) not null unique,
+	price_on_steam	double precision check (price_on_steam > 0),
+	price_on_amazon	double precision check (price_on_amazon > 0),
 	date_recorded	date not null,
-	game_id			bigint not null references games (id) 
+	game_id			int not null references games (id) 
 );
 
-create index on games (game_name);
+create index on games (name);
 
-create index on price_history (game_name);
+create index on price_history (name);
 
 # --- !Downs
 
