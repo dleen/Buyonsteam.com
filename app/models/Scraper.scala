@@ -33,15 +33,9 @@ object steamScraper {
   }
 
   def gameValues(gameHtml: org.jsoup.nodes.Element): Game = {
-    val wordDate = new SimpleDateFormat("MMM d, yyyy")
 
     val appUrl = gameHtml.select("a").attr("href")
     val appId = getSteamAppId(appUrl)
-
-    def dateSanit(dateS: String): Option[Date] = {
-      if (dateS.isEmpty) None
-      else Some(wordDate.parse(dateS))
-    }
 
     def scoreSanit(mScore: String): Option[Int] = {
       if (mScore.isEmpty) None
@@ -52,8 +46,8 @@ object steamScraper {
       appId,
       gameHtml.select("h4").text,
       appUrl,
-      Some(gameHtml.getElementsByClass("search_capsule").select("img").attr("src")),
-      dateSanit(gameHtml.getElementsByClass("search_released").text),
+      gameHtml.getElementsByClass("search_capsule").select("img").attr("src"),
+      gameHtml.getElementsByClass("search_released").text,
       scoreSanit(gameHtml.getElementsByClass("search_metascore").text))
   }
 

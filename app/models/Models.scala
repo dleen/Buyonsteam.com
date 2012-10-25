@@ -9,12 +9,12 @@ import anorm._
 import anorm.SqlParser._
 
 case class Game(id: Pk[Long] = NotAssigned, steamId: Option[Int],
-  gameName: String, url: String, imgUrl: Option[String],
-  releaseDate: Option[Date], metaCritic: Option[Int])
+  gameName: String, url: String, imgUrl: String,
+  releaseDate: String, metaCritic: Option[Int])
 
 case class PriceHistory(id: Pk[Long] = NotAssigned, gameName: String,
   priceOnSteam: Option[Double], priceOnAmazon: Option[Double],
-  dateRecorded: Option[Date])
+  dateRecorded: Date)
 
 object Game {
 
@@ -57,14 +57,14 @@ object PriceHistory {
 	        insert into price_history 
 	        (price_on_steam, price_on_amazon, date_recorded, game_id) 
 	        values (
-	        {price_on_steam}, {price_on_amazon}, {date_recorded}, 
-	        (select id from games where game_name = {game_hist_name})
+            {game_name}, {price_on_steam}, {price_on_amazon}, {date_recorded}, 
+	        (select id from games where game_name = {game_name})
 	        )
 	     """).on(
           'price_on_steam -> thisHistory.priceOnSteam,
           'price_on_amazon -> thisHistory.priceOnAmazon,
           'date_recorded -> new Date(),
-          'game_hist_name -> thisHistory.gameName).executeUpdate()
+          'game_name -> thisHistory.gameName).executeUpdate()
     }
   }
 }
