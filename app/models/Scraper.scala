@@ -15,9 +15,6 @@ import org.jsoup.nodes._
    to use the Scala map function on a Java list. */
 import scala.collection.JavaConversions._
 
-// CHANGE TO CLASS
-// OBJECT IS STATIC!!!
-
 abstract class Scraper {
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A]
@@ -38,26 +35,23 @@ abstract class StoreDetails {
   val finalPage: Int
 }
 
-class SteamScraper[A](page: Int, det: A) extends Scraper with SafeMoney {
+class SteamScraper(page: Int) extends Scraper with SafeMoney {
 
-  def appId(url: String): Option[Int] = {
-    if (url.length < 42) None
-    else if (url(30) == 'v') None
-    else Some(url.substring(34, url.indexOf('/', 34)).toInt)
+  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
+    val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString).get()
+    val searchResults = doc.getElementsByClass("search_result_row").toList
+
+    searchResults.map(f(_))
   }
 
   def gameVals(html: Element): Game = {
-    def scorefS(meta: String): Option[Int] = {
-      if (meta.isEmpty) None
-      else Some(meta.toInt)
-    }
 
     val name = html.select("h4").text
     val gameUrl = html.select("a").attr("href")
-    val gameId = appId(gameUrl)
+    val gameId = SteamScraper.appId(gameUrl)
     val imgUrl = html.getElementsByClass("search_capsule").select("img").attr("src")
     val releaseDate = html.getElementsByClass("search_released").text
-    val meta = scorefS(html.getElementsByClass("search_metascore").text)
+    val meta = SteamScraper.scorefS(html.getElementsByClass("search_metascore").text)
 
     Game(NotAssigned, gameId, name, gameUrl, imgUrl, releaseDate, meta)
   }
@@ -71,23 +65,24 @@ class SteamScraper[A](page: Int, det: A) extends Scraper with SafeMoney {
   }
 
   /*def scrapePage(pageN: Int): List[Combined] = {
-    val doc = Jsoup.connect(storeHead + pageN.toString).get()
-    val searchResults = doc.getElementsByClass("search_result_row").toList
-
     searchResults.map(allVals(_)).filter(x => x.p.priceOnSteam != None)
   }*/
 
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString).get()
-    val searchResults = doc.getElementsByClass("search_result_row").toList
-
-    searchResults.map(f(_))
-  }
 }
 
 object SteamScraper {
-  
-  
+
+  def appId(url: String): Option[Int] = {
+    if (url.length < 42) None
+    else if (url(30) == 'v') None
+    else Some(url.substring(34, url.indexOf('/', 34)).toInt)
+  }
+
+  def scorefS(meta: String): Option[Int] = {
+    if (meta.isEmpty) None
+    else Some(meta.toInt)
+  }
+
 }
 
 object SteamDets extends StoreDetails {
@@ -103,11 +98,6 @@ object SteamDets extends StoreDetails {
     navNumSep(2).toInt
   }
 }
-
-//class GreenManScraper extends Scraper
-//object GreenManScraper extends StoreDetails
-//class AmazonScraper extends Scraper
-//object AmazonScraper extends StoreDetails
 
 trait SafeMoney {
   def rm$(s: String) = s.tail.toDouble

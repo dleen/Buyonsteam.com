@@ -29,10 +29,10 @@ object Application extends Controller {
 
    // scrapeGamePage(2).filter(x => x.g.steamId != None).map(x => Combined.insert(x))
   
-  //val SS = new SteamScraper
+  val SS = new SteamScraper(1)
   
-  //val s1 = SS.scrapePage(1, SS.allVals)
-  //val s2 = SS.scrapePage(2, SS.allVals)
+  val s1 = SS.scrapePage(1, SS.gameVals)
+  val s2 = SS.scrapePage(2, SS.allVals)
 
   //println(s2)
   
