@@ -14,52 +14,64 @@ import org.jsoup._
    to use the Scala map function on a Java list. */
 import scala.collection.JavaConversions._
 
+// CHANGE TO CLASS
+// OBJECT IS STATIC!!!
 object steamScraper {
 
   val steamStoreHead =
-    "http://store.steampowered.com/search/?snr=1_4_4__12&term=#sort_by=&sort_order=ASC&page="
+    "http://store.steampowered.com/search/?snr=1_4_4__12&term=#sort_by=&sort_order=ASC&category1=998&page="
 
   def finalPage = {
     val doc = Jsoup.connect(steamStoreHead + "1").get()
     val listedPageNumbers = doc.getElementsByClass("search_pagination_right").select("a").text
     val pageNums = listedPageNumbers.split(' ')
+
     pageNums(2).toInt
   }
 
-  def getSteamAppId(url: String): Option[Int] = {
-    if (url.length < 42) None
-    else if (url(30) == 'v') None
-    else Some(url.substring(34, url.indexOf('/', 34)).toInt)
-  }
+  def steamGameValues(gameHtml: org.jsoup.nodes.Element): Combined = {
 
-  def gameValues(gameHtml: org.jsoup.nodes.Element): Game = {
-
-    val appUrl = gameHtml.select("a").attr("href")
-    val appId = getSteamAppId(appUrl)
-
-    def scoreSanit(mScore: String): Option[Int] = {
-      if (mScore.isEmpty) None
-      else Some(mScore.toInt)
+    def getSteamAppId(url: String): Option[Int] = {
+      if (url.length < 42) None
+      else if (url(30) == 'v') None
+      else Some(url.substring(34, url.indexOf('/', 34)).toInt)
     }
 
-    Game(NotAssigned,
-      appId,
-      gameHtml.select("h4").text,
-      appUrl,
-      gameHtml.getElementsByClass("search_capsule").select("img").attr("src"),
-      gameHtml.getElementsByClass("search_released").text,
-      scoreSanit(gameHtml.getElementsByClass("search_metascore").text))
+    def scoreSanitizer(meta: String): Option[Int] = {
+      if (meta.isEmpty) None
+      else Some(meta.toInt)
+    }
+
+    def dollarSanitizer(dollarPrice: String): Option[Double] = {
+      def removeDollar(s: String) = s.tail.toDouble
+
+      if (dollarPrice.isEmpty || dollarPrice.contains("Free")
+        || dollarPrice.contains("Demo")) None
+      else if (dollarPrice.contains(' ')) {
+        val discount = dollarPrice.split(' ')
+        Some(math.min(removeDollar(discount(0)), removeDollar(discount(1))))
+      } else if (dollarPrice(0) == '$') Some(removeDollar(dollarPrice))
+      else None
+    }
+
+    val gameUrl = gameHtml.select("a").attr("href")
+    val gameId = getSteamAppId(gameUrl)
+    val gameName = gameHtml.select("h4").text
+    val imgUrl = gameHtml.getElementsByClass("search_capsule").select("img").attr("src")
+    val releaseDate = gameHtml.getElementsByClass("search_released").text
+    val meta = scoreSanitizer(gameHtml.getElementsByClass("search_metascore").text)
+    val pOS = dollarSanitizer(gameHtml.getElementsByClass("search_price").text)
+
+    Combined(
+      Game(NotAssigned, gameId, gameName, gameUrl, imgUrl, releaseDate, meta),
+      Price(NotAssigned, gameName, pOS, None, new Date(), None))
   }
 
-  def scrapeGamePage(pageN: Int) = {
+  def scrapeGamePage(pageN: Int): List[Combined] = {
     val doc = Jsoup.connect(steamStoreHead + pageN.toString).get()
-    val searchResults = doc.getElementsByClass("search_result_row")
+    val searchResults = doc.getElementsByClass("search_result_row").toList
 
-    searchResults.map(gameValues(_))
+    searchResults.map(steamGameValues(_)).filter(x => x.p.priceOnSteam != None)
   }
-
-  //def gamePrice(): PriceHistory = {
-  //  gameHtml.getElementsByClass("search_price").text
-  //}
 
 }
