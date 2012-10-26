@@ -15,8 +15,8 @@ case class Game(id: Pk[Long] = NotAssigned, steamId: Option[Int],
 case class Price(id: Pk[Long] = NotAssigned, name: String,
   priceOnSteam: Option[Double], priceOnAmazon: Option[Double],
   dateRecorded: Date, gameId: Option[Int])
-  
-case class Combined(g: Game, p: Price) 
+
+case class Combined(g: Game, p: Price)
 
 object Combined {
   def insert(c: Combined) = {

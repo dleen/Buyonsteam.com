@@ -38,7 +38,9 @@ abstract class StoreDetails {
 class SteamScraper(pageN: Int) extends Scraper with SafeMoney {
 
   def scrapePage[A](f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString).get()
+    val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString)
+      .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+      .get()
     val searchResults = doc.getElementsByClass("search_result_row").toList
 
     searchResults.map(f(_))
@@ -64,10 +66,6 @@ class SteamScraper(pageN: Int) extends Scraper with SafeMoney {
     Price(NotAssigned, name, priceS, None, new Date(), None)
   }
 
-  /*def scrapePage(pageN: Int): List[Combined] = {
-    searchResults.map(allVals(_)).filter(x => x.p.priceOnSteam != None)
-  }*/
-
 }
 
 object SteamScraper {
@@ -88,7 +86,7 @@ object SteamScraper {
 object SteamDets extends StoreDetails {
 
   val storeHead =
-    "http://store.steampowered.com/search/#sort_by=&sort_order=ASC&page="
+    "http://store.steampowered.com/search/results?&category1=998&page="
 
   val finalPage = {
     val doc = Jsoup.connect(storeHead + "1").get()
@@ -100,6 +98,7 @@ object SteamDets extends StoreDetails {
 }
 
 trait SafeMoney {
+
   def rm$(s: String) = s.tail.toDouble
   def $anitizer(price: String): Option[Double] = {
     // "$59.99" -> 59.99 
