@@ -17,15 +17,15 @@ import scala.collection.JavaConversions._
 
 abstract class Scraper {
 
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A]
+  def scrapePage[A](f: (Element) => A): List[A]
 
   // Capture everything from html, useful for initializing, creating new games.
   def allVals(html: Element): Combined = Combined(gameVals(html), priceVals(html))
 
-  // Capture only the game values
+  // Capture the game values
   def gameVals(html: Element): Game
 
-  // Capture only the price values
+  // Capture the price values
   def priceVals(html: Element): Price
 
 }
@@ -35,9 +35,9 @@ abstract class StoreDetails {
   val finalPage: Int
 }
 
-class SteamScraper(page: Int) extends Scraper with SafeMoney {
+class SteamScraper(pageN: Int) extends Scraper with SafeMoney {
 
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
+  def scrapePage[A](f: (Element) => A): List[A] = {
     val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString).get()
     val searchResults = doc.getElementsByClass("search_result_row").toList
 

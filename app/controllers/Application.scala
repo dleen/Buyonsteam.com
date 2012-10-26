@@ -31,10 +31,14 @@ object Application extends Controller {
   
   val SS = new SteamScraper(1)
   
-  val s1 = SS.scrapePage(1, SS.gameVals)
-  val s2 = SS.scrapePage(2, SS.allVals)
+  val g1 = SS.scrapePage(SS.gameVals)
+  val p1 = SS.scrapePage(SS.priceVals)
 
-  //println(s2)
+  g1 map { Game.insert(_) }
+  p1 map { Price.insert(_) }
+
+  //println(g1)
+  //println(p1)
   
   def index = Action {
     Ok(views.html.index(List(1,2,3)))
