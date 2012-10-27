@@ -59,15 +59,14 @@ object Game {
           insert into games 
           (steam_id, name, url, img_url, release_date, meta_critic)
           values (
-          {steam_id}, {name}, {url}, {img_url}, {release_date}, {meta_critic}
-          )
+          {steam_id}, {name}, {url}, {img_url}, {release_date}, {meta_critic})
         """).on(
           'steam_id -> thatGame.steamId,
           'name -> thatGame.name,
           'url -> thatGame.url,
           'img_url -> thatGame.imgUrl,
           'release_date -> thatGame.releaseDate,
-          'meta_critic -> thatGame.metacritic).executeUpdate()
+          'meta_critic -> thatGame.metacritic).executeInsert()
     }
   }
 

@@ -28,3 +28,6 @@ documentation/api
 .scala_dependencies
 .classpath
 .settings
+/.target
+/bin
+.settings
