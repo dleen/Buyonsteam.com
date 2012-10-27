@@ -1,11 +1,31 @@
-@(message: List[Int])
+@(message: String, pts: Form[SteamScraper], sclist: List[Combined])
+
+@import helper._
+
+@implicitFieldConstructor = @{ FieldConstructor(twitterBootstrapInput.f) } 
 
 @main("Welcome to Play 2.0") {
+
+    <h1>@message</h1>
+    
+    @form(routes.Application.scrape) {
+    
+    	<fieldset>
+    
+        	@inputText(pts("storePage"), '_label -> "Page Number")
+    
+    	</fieldset>
+    
+    <div class="actions">
+    <input type="submit" value="Scrape this page" class="btn primary">
+    </div>
+    
+    }
     
     <ul>
-	@message.map { message =>
-	<li>@message</li> 
-	  }
-</ul>
+    @sclist.map { x =>
+    <li> @x </li>
+    }
+    </ul>
     
 }

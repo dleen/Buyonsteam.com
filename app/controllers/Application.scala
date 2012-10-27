@@ -2,37 +2,28 @@ package controllers
 
 import play.api._
 import play.api.mvc._
-
-import models._
+import play.api.data._
+import play.api.data.Forms._
+import play.api.data.validation.Constraints._
 
 import anorm._
-import java.util.Date
 
-import org.jsoup._
-import scala.collection.JavaConversions._
+import views._
+import models._
 
 object Application extends Controller {
 
-  val SS = new SteamScraper(1)
+  val pageToScrapeForm = Form(
+    mapping("storePage" -> number.verifying(min(0), max(50)))(SteamScraper.apply)(SteamScraper.unapply))
 
-  val g1 = SS.scrapePage(SS.gameVals)
-  val p1 = SS.scrapePage(SS.priceVals)
-
-  val SQ = new SteamScraper(2)
-
-  val c2 = SQ.scrapePage(SQ.allVals)
-
-  g1 map { Game.insert(_) }
-  p1 map { Price.insert(_) }
-
-  c2 map { Combined.insert(_) }
-
-  //println(g1)
-  //println(p1)
-  //println(c2)
+  def scrape = Action { implicit request =>
+    pageToScrapeForm.bindFromRequest.fold(
+      formWithErrors => BadRequest(html.index("Ooops, didn't work", formWithErrors, List())),
+      x => Ok(html.index("It worked!", pageToScrapeForm, x getAll)))
+  }
 
   def index = Action {
-    Ok(views.html.index(List(1, 2, 3)))
+    Ok(html.index("Hello", pageToScrapeForm, List()))
   }
 
 }

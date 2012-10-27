@@ -8,13 +8,19 @@ import play.api.Play.current
 import anorm._
 import anorm.SqlParser._
 
-case class Game(id: Pk[Long] = NotAssigned, steamId: Option[Int],
-  name: String, url: String, imgUrl: String,
-  releaseDate: String, metacritic: Option[Int])
+case class Game(id: Pk[Long] = NotAssigned,
+  steamId: Option[Int],
+  name: String, url: String,
+  imgUrl: String,
+  releaseDate: String,
+  metacritic: Option[Int])
 
-case class Price(id: Pk[Long] = NotAssigned, name: String,
-  priceOnSteam: Option[Double], priceOnAmazon: Option[Double],
-  dateRecorded: Date, gameId: Option[Int])
+case class Price(id: Pk[Long] = NotAssigned,
+  name: String,
+  priceOnSteam: Option[Double],
+  priceOnAmazon: Option[Double],
+  dateRecorded: Date,
+  gameId: Option[Int])
 
 case class Combined(g: Game, p: Price)
 

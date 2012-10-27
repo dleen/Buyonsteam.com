@@ -17,7 +17,11 @@ import scala.collection.JavaConversions._
 
 abstract class Scraper {
 
-  def scrapePage[A](f: (Element) => A): List[A]
+  def getAll: List[Combined]
+  def getGames: List[Game]
+  def getPrices: List[Price]
+
+  def scrapePage[A](pageN: Int, f: (Element) => A): List[A]
 
   // Capture everything from html, useful for initializing, creating new games.
   def allVals(html: Element): Combined = Combined(gameVals(html), priceVals(html))
@@ -31,13 +35,21 @@ abstract class Scraper {
 }
 
 abstract class StoreDetails {
+
   val storeHead: String
   val finalPage: Int
+
 }
 
-class SteamScraper(pageN: Int) extends Scraper with SafeMoney {
+case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
-  def scrapePage[A](f: (Element) => A): List[A] = {
+  def getAll: List[Combined] = scrapePage(pageN, allVals)
+
+  def getGames: List[Game] = scrapePage(pageN, gameVals)
+
+  def getPrices: List[Price] = scrapePage(pageN, priceVals)
+
+  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
     val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
@@ -47,7 +59,6 @@ class SteamScraper(pageN: Int) extends Scraper with SafeMoney {
   }
 
   def gameVals(html: Element): Game = {
-
     val name = html.select("h4").text
     val gameUrl = html.select("a").attr("href")
     val gameId = SteamScraper.appId(gameUrl)
@@ -59,7 +70,6 @@ class SteamScraper(pageN: Int) extends Scraper with SafeMoney {
   }
 
   def priceVals(html: Element): Price = {
-
     val name = html.select("h4").text
     val priceS = $anitizer(html.getElementsByClass("search_price").text)
 
@@ -86,7 +96,7 @@ object SteamScraper {
 object SteamDets extends StoreDetails {
 
   val storeHead =
-    "http://store.steampowered.com/search/results?&category1=998&page="
+    "http://store.steampowered.com/search/results?&cc=us&category1=998&page="
 
   val finalPage = {
     val doc = Jsoup.connect(storeHead + "1").get()
