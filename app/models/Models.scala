@@ -20,15 +20,23 @@ case class Price(id: Pk[Long] = NotAssigned,
   priceOnSteam: Option[Double],
   priceOnAmazon: Option[Double],
   dateRecorded: Date,
+  onSale: Boolean,
   gameId: Option[Int])
 
 case class Combined(g: Game, p: Price)
 
 object Combined {
+
   def insert(c: Combined) = {
     Game.insert(c.g)
     Price.insert(c.p)
   }
+
+}
+
+case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
+  lazy val prev = Option(page - 1).filter(_ >= 0)
+  lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)
 }
 
 object Game {
@@ -47,12 +55,62 @@ object Game {
       }
   }
 
-  // Retrieve a game by name
+  val withPrice = Game.simple ~ (Price.simple ?) map {
+    case game ~ price => (game, price)
+  }
+
+  def list(page: Int = 0,
+    pageSize: Int = 10,
+    orderBy: Int = 1,
+    filter: String = "%"): Page[(Game, Option[Price])] = {
+
+    val offset = pageSize * page
+
+    DB.withConnection { implicit connection =>
+
+      val games = SQL(
+        """
+          select * from games
+          left join price_history on game_id = games.id
+          where upper(games.name) like upper({filter})
+          order by {orderby} nulls last 
+          limit {pagesize} offset {offset}  
+        """).on(
+          'pagesize -> pageSize,
+          'offset -> offset,
+          'filter -> filter,
+          'orderby -> orderBy).as(Game.withPrice *)
+
+      val totalRows = SQL(
+        """
+          select count(*) from games
+          left join price_history on game_id = games.id
+          where upper(games.name) like upper({filter})
+        """).on(
+          'filter -> filter).as(scalar[Long].single)
+
+      Page(games, page, offset, totalRows)
+
+    }
+  }
 
   // Retrieve a game by id
+  def findById(id: Long): Option[Game] = {
+    DB.withConnection { implicit connection =>
+      SQL("select * from games where id = {id}").on('id -> id).as(Game.simple.singleOpt)
+    }
+  }
+
+  // Retrieve a game by name
+  def findByName(name: String): Option[Game] = {
+    DB.withConnection { implicit connection =>
+      SQL("select * from games where upper(name) like upper({name})")
+        .on('name -> name).as(Game.simple.singleOpt)
+    }
+  }
 
   // Insert a new game.
-  def insert(thatGame: Game) = {
+  def insert(that: Game) = {
     DB.withConnection { implicit connection =>
       SQL(
         """
@@ -61,12 +119,12 @@ object Game {
           values (
           {steam_id}, {name}, {url}, {img_url}, {release_date}, {meta_critic})
         """).on(
-          'steam_id -> thatGame.steamId,
-          'name -> thatGame.name,
-          'url -> thatGame.url,
-          'img_url -> thatGame.imgUrl,
-          'release_date -> thatGame.releaseDate,
-          'meta_critic -> thatGame.metacritic).executeInsert()
+          'steam_id -> that.steamId,
+          'name -> that.name,
+          'url -> that.url,
+          'img_url -> that.imgUrl,
+          'release_date -> that.releaseDate,
+          'meta_critic -> that.metacritic).executeInsert()
     }
   }
 
@@ -81,28 +139,45 @@ object Price {
       get[Option[Double]]("price_history.price_on_steam") ~
       get[Option[Double]]("price_history.price_on_amazon") ~
       get[Date]("price_history.date_recorded") ~
+      get[Boolean]("price_history.on_sale") ~
       get[Option[Int]]("price_history.game_id") map {
-        case id ~ name ~ priceOnSteam ~ priceOnAmazon ~ dateRecorded ~ gameId =>
-          Price(id, name, priceOnSteam, priceOnAmazon, dateRecorded, gameId)
+        case id ~ name ~ priceOnSteam ~ priceOnAmazon ~ onSale ~ dateRecorded ~ gameId =>
+          Price(id, name, priceOnSteam, priceOnAmazon, onSale, dateRecorded, gameId)
       }
   }
 
-  // Insert a price date pair
-  def insert(thatHistory: Price) = {
+  // Find by gameId
+  def findById(gameId: Long): List[Price] = {
+    DB.withConnection { implicit connection =>
+      SQL("select * from price_history where game_id = {game_id}")
+        .on('game_id -> gameId).as(Price.simple *)
+    }
+  }
+
+  // Find by name
+  def findByName(name: String): List[Price] = {
+    DB.withConnection { implicit connection =>
+      SQL("select * from price_history where upper(name) like upper({name})")
+        .on('name -> name).as(Price.simple *)
+    }
+  }
+
+  // Insert a price
+  def insert(that: Price) = {
     DB.withConnection { implicit connection =>
       SQL(
         """
 	        insert into price_history 
-	        (name, price_on_steam, price_on_amazon, date_recorded, game_id) 
+	        (name, price_on_steam, price_on_amazon, on_sale, date_recorded, game_id) 
 	        values (
-            {name}, {price_on_steam}, {price_on_amazon}, {date_recorded}, 
-	        (select id from games where name = {name})
-	        )
+            {name}, {price_on_steam}, {price_on_amazon}, {on_sale}, {date_recorded}, 
+	        (select id from games where name = {name}))
 	     """).on(
-          'name -> thatHistory.name,
-          'price_on_steam -> thatHistory.priceOnSteam,
-          'price_on_amazon -> thatHistory.priceOnAmazon,
-          'date_recorded -> thatHistory.dateRecorded).executeUpdate()
+          'name -> that.name,
+          'price_on_steam -> that.priceOnSteam,
+          'price_on_amazon -> that.priceOnAmazon,
+          'on_sale -> that.onSale,
+          'date_recorded -> that.dateRecorded).executeInsert()
     }
   }
 }

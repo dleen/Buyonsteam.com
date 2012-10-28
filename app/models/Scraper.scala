@@ -72,8 +72,9 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def priceVals(html: Element): Price = {
     val name = html.select("h4").text
     val priceS = $anitizer(html.getElementsByClass("search_price").text)
+    val onSale = !html.select("strike").isEmpty
 
-    Price(NotAssigned, name, priceS, None, new Date(), None)
+    Price(NotAssigned, name, priceS, None, new Date(), onSale, None)
   }
 
 }
@@ -109,16 +110,15 @@ object SteamDets extends StoreDetails {
 
 trait SafeMoney {
 
-  def rm$(s: String) = s.tail.toDouble
+  def rm$(s: String): Double = if (s(0) == '$') s.tail.toDouble else scala.Double.PositiveInfinity
   def $anitizer(price: String): Option[Double] = {
     // "$59.99" -> 59.99 
-
-    if (price.isEmpty || price.contains("Free") || price.contains("Demo")) None
-    // "$59.99 $49.99" -> 49.99
-    else if (price.contains(' ')) {
-      val discount = price.split(' ')
-      Some(math.min(rm$(discount(0)), rm$(discount(1))))
-    } else if (price(0) == '$') Some(rm$(price))
-    else None
+    if (price.contains('$')) {
+      if (price.contains(' ')) {
+        val discount = price.split(' ')
+        // "$59.99 $49.99" -> 49.99
+        Some(math.min(rm$(discount(0)), rm$(discount(1))))
+      } else Some(rm$(price))
+    } else None
   }
 }

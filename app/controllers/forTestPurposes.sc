@@ -4,10 +4,10 @@ import java.util.Date
 
 
 object forTestPurposes {
-  val ttt = ""                                    //> ttt  : java.lang.String = ""
+  val ttt = "name"                                //> ttt  : java.lang.String = name
+  "%"+ttt+"%"                                     //> res0: java.lang.String = %name%
+  ttt.isEmpty                                     //> res1: Boolean = false
   
-  ttt.isEmpty                                     //> res0: Boolean = true
-  
-  new Date()                                      //> res1: java.util.Date = Thu Oct 25 12:47:55 PDT 2012
+  new Date()                                      //> res2: java.util.Date = Sat Oct 27 16:52:35 PDT 2012
   
 }
