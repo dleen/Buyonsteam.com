@@ -8,6 +8,9 @@ GET     /                           controllers.Application.index
 GET    /games						controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
 
 GET /reindex controllers.Application.reindex
+GET /autocompleteSearch controllers.Application.autocompleteSearch(term: String ?= "")
+GET /test controllers.Application.testtt
+#GET /picalc controllers.Application.picalc
 
 #POST /			controllers.Application.scrape
 

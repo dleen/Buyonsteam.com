@@ -108,6 +108,19 @@ object Game {
         .on('name -> name).as(Game.simple.singleOpt)
     }
   }
+  
+  // Retrieve a list of matching game names
+  def findPartialName(name: String): List[String] = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+          select name from games 
+          where upper(name) like upper({name}) 
+          order by meta_critic desc nulls last
+          limit 4
+          """)
+        .on('name -> name).as(str("name") *)
+    }
+  }
 
   // Insert a new game.
   def insert(that: Game) = {

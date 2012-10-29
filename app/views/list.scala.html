@@ -27,7 +27,7 @@ orderBy) @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"}">
 	<h1> Should I Buy Or Wait?</h1>
 	<p>Up to date info on the latest deals on Steam.</p>
 	@helper.form(action=routes.Application.list()) {
-	<input type="search" id="searchbox" class="input-xlarge" name="f" value="@currentFilter" placeholder="Search for a game..." data-provide="typeahead" autocomplete="off"><br>
+	<input type="search" id="searchbox" class="input-xlarge autocomplete" name="f" value="@currentFilter" placeholder="Search for a game..." data-url="@{routes.Application.autocompleteSearch()}" autocomplete="off"><br>
 	<input type="submit" id="searchsubmit" value="Buy Or Wait?" class="btn btn-primary">
 }
 </div>

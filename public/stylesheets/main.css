@@ -2,3 +2,11 @@
 	height: 140px;
 	padding-top: 20px;
 }
+
+#subtle-images {
+	background-image: url('../images/cream_dust.png')
+}
+
+table {
+	background-color: white;
+}
