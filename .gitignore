@@ -31,3 +31,11 @@ documentation/api
 /.target
 /bin
 .settings
+.worksheet/*
+.worksheet/src/controllers.forTestPurposes.scala
+
+.worksheet/bin/controllers/forTestPurposes$.class
+
+.worksheet/bin/controllers/forTestPurposes$$anonfun$main$1.class
+
+app/controllers/forTestPurposes.sc

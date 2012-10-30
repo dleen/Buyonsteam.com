@@ -29,26 +29,33 @@ object Application extends Controller {
    */
 
   def ggins = Action {
-    GamersGateScraper(2).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
+    GamersGateScraper(2).getGames map (x => 
+      try { Game.insert(x) }
+      catch { case e =>println(e) })
     Ok("hello")
   }
+  
+  println(GamersGateDets.finalPage)
 
- /* def reindexOther = Action {
+ def reindexOther = Action {
     val promOfIndex: Promise[String] = Akka.future {
       val start: Long = System.currentTimeMillis
       for (i <- (1 to GamersGateDets.finalPage).par) {
-        GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
+        //GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
+        GamersGateScraper(i).getAll map (x => 
+          try { GwithP.insert(x) }
+          catch { case e => println(e) })
       }
       "Done! " + (System.currentTimeMillis - start).millis.toString
     }
     Async {
-      promOfIndex.orTimeout("Oops", 60000).map { eitherIndorTimeout =>
+      promOfIndex.orTimeout("Oops", 120000).map { eitherIndorTimeout =>
         eitherIndorTimeout.fold(
           timeout => InternalServerError(timeout),
           i => Ok("All " + i))
       }
     }
-  }*/
+  }
 
   /*
    * Real working code.
@@ -58,12 +65,15 @@ object Application extends Controller {
     val promOfIndex: Promise[String] = Akka.future {
       val start: Long = System.currentTimeMillis
       for (i <- (1 to SteamDets.finalPage).par) {
-        SteamScraper(i).getAll flatMap (x => catching(classOf[PSQLException]) opt Combined.insert(x))
+        //SteamScraper(i).getAllSteam flatMap (x => catching(classOf[PSQLException]) opt GwithP.insert(x))
+        SteamScraper(i).getAllSteam map (x => 
+          try { GSwP.insert(x) }
+          catch { case e => println(e) })
       }
       "Done! " + (System.currentTimeMillis - start).millis.toString
     }
     Async {
-      promOfIndex.orTimeout("Oops", 20000).map { eitherIndorTimeout =>
+      promOfIndex.orTimeout("Oops", 60000).map { eitherIndorTimeout =>
         eitherIndorTimeout.fold(
           timeout => InternalServerError(timeout),
           i => Ok("All " + i))

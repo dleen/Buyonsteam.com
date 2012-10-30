@@ -40,10 +40,9 @@ orderBy) @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"}">
 			<thead>
 				<tr>
 					@header(2, "Game")
-					@header(3, "Release Date")
-					@header(4, "Metacritic")
-					@header(5, "Price On Steam")
-					@header(6, "On Sale?")
+					@header(3, "Store")
+					@header(4, "Price")
+					@header(5, "On Sale?")
 				</tr>
 			</thead>
 			<tbody>	
@@ -51,10 +50,9 @@ orderBy) @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"}">
 				case (game, price) => {
 				<tr>
 					<td> @game.name </td>
-					<td> @game.releaseDate </td>
-					<td> @game.metacritic.getOrElse { <em>-</em> } </td>
-					<td> @price.map(_.priceOnSteam).getOrElse { <em>Free</em> } </td>
-					<td>@price.map(_.onSale).getOrElse {} </td>
+					<td> @game.store </td>
+					<td> @price.map(_.priceOnX).getOrElse { <em>N/A</em> } </td>
+					<td>@price.map(_.onSale).getOrElse { <em>N/A</em> } </td>
 				</tr>
 			}
 		}

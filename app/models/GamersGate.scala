@@ -8,7 +8,7 @@ import scala.collection.JavaConversions._
 
 case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
-  def getAll: List[Combined] = scrapePage(pageN, allVals)
+  def getAll: List[GwithP] = scrapePage(pageN, allVals)
   def getGames: List[Game] = scrapePage(pageN, gameVals)
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
@@ -24,27 +24,26 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def gameVals(html: Element): Game = {
     val name = html.getElementsByClass("descr_cont").select("a").attr("title")
     val gameUrl = html.getElementsByClass("descr_cont").select("a").attr("href")
-    val gameId = None
     val imgUrl = html.getElementsByClass("box_cont").select("img").attr("src")
-    val releaseDate = ""
-    val meta = None
 
-    Game(NotAssigned, gameId, name, gameUrl, imgUrl, releaseDate, meta)
+    Game(NotAssigned, name, GamersGateDets.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
     val name = html.getElementsByClass("descr_cont").select("a").attr("title")
-    val tempPrice = html.getElementsByClass("prtag")(0).children
-    val priceS = $anitizer(tempPrice(0).ownText)
+    val tempPrice = html.getElementsByClass("prtag").first.children
+    val priceS = $anitizer(tempPrice.first.ownText)
     val onSale = !html.getElementsByClass("discount").isEmpty
 
-    Price(NotAssigned, name, None, priceS, new Date(), onSale, None)
+    Price(NotAssigned, priceS, onSale, new Date(), 0)
   }
 
 }
 
 object GamersGateDets extends StoreDetails {
 
+  val name = "GamersGate"
+    
   val storeHead =
     "http://www.gamersgate.com/games?filter=available&pg="
 

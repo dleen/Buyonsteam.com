@@ -2,45 +2,46 @@
 
 # --- !Ups
 
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+create extension if not exists pg_trgm;
 
-create table games (
+create table scraped_games (
 	id				serial not null primary key,
-	steam_id		int unique check (steam_id > 0),
-	name			varchar(255) not null unique,
-	url				varchar(255) not null,
+	name			varchar(255) not null,
+	store			varchar(255) not null,
+	store_url		varchar(255) not null,
 	img_url			varchar(255) not null,
-	release_date	varchar(255) not null,
-	meta_critic		int check (meta_critic > 0)
+	unique (name, store)
 );
 
-create table gamersgate_leftover (
-	id				serial not null primary key,
-	name			varchar(255) not null unique
+create table steam_games (
+	steam_id		int primary key,
+	name			varchar(255) not null unique,
+	release_date	varchar(255) not null,
+	meta_critic		int not null,
+	game_id			int not null references scraped_games (id)
 );
 
 create table price_history (
 	id				serial not null primary key,
-	name			varchar(255) not null,
-	price_on_steam	double precision check (price_on_steam > 0),
-	price_on_amazon	double precision check (price_on_amazon > 0),
+	price_on_x		double precision not null check (price_on_x >= 0),
 	on_sale			boolean not null,
 	date_recorded	date not null,
-	game_id			int not null references games (id),
+	game_id			int not null references scraped_games (id),
 	unique (date_recorded, game_id)
 );
 
-create index on games (name);
+create index on scraped_games (name);
 
-CREATE INDEX game_name_trigram_idx ON games USING gist(name gist_trgm_ops);
+create index on steam_games (name);
 
-create index on price_history (name);
+create index game_name_trigram_idx on scraped_games using gist(name gist_trgm_ops);
+
+create index on price_history (game_id);
 
 # --- !Downs
 
 drop table price_history;
 
-drop table gamersgate_leftover;
+drop table steam_games;
 
-drop table games;
-
+drop table scraped_games;

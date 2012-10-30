@@ -9,27 +9,44 @@ import anorm._
 import anorm.SqlParser._
 
 case class Game(id: Pk[Long] = NotAssigned,
-  steamId: Option[Int],
-  name: String, url: String,
-  imgUrl: String,
+  name: String,
+  store: String,
+  storeUrl: String,
+  imgUrl: String)
+
+case class SteamGame(steamId: Int,
+  name: String,
   releaseDate: String,
-  metacritic: Option[Int])
+  metacritic: Int,
+  gameId: Int)
 
 case class Price(id: Pk[Long] = NotAssigned,
-  name: String,
-  priceOnSteam: Option[Double],
-  priceOnAmazon: Option[Double],
-  dateRecorded: Date,
+  priceOnX: Double,
   onSale: Boolean,
-  gameId: Option[Int])
+  dateRecorded: Date,
+  gameId: Int)
 
-case class Combined(g: Game, p: Price)
+case class GwithP(g: Game, p: Price)
 
-object Combined {
+case class GSwP(sg: SteamGame, gwp: GwithP) 
 
-  def insert(c: Combined) = {
+object GSwP {
+  
+  def insert(x: GSwP) = {
+    GwithP.insert(x.gwp)
+    SteamGame.insert(x.sg)
+  }
+}
+
+object GwithP {
+
+  def insert(c: GwithP) = {
     Game.insert(c.g)
-    Price.insert(c.p)
+    Price.insert(c.p, c.g)
+  }
+
+  def priceInsert(c: GwithP) = {
+    Price.insert(c.p, c.g)
   }
 
 }
@@ -43,15 +60,13 @@ object Game {
 
   // Parse a game from a ResultSet
   val simple = {
-    get[Pk[Long]]("games.id") ~
-      get[Option[Int]]("games.steam_id") ~
-      get[String]("games.name") ~
-      get[String]("games.url") ~
-      get[String]("games.img_url") ~
-      get[String]("games.release_date") ~
-      get[Option[Int]]("games.meta_critic") map {
-        case id ~ steamId ~ name ~ url ~ imgUrl ~ releaseDate ~ metacritic =>
-          Game(id, steamId, name, url, imgUrl, releaseDate, metacritic)
+    get[Pk[Long]]("scraped_games.id") ~
+      get[String]("scraped_games.name") ~
+      get[String]("scraped_games.store") ~
+      get[String]("scraped_games.store_url") ~
+      get[String]("scraped_games.img_url") map {
+        case id ~ name ~ store ~ storeUrl ~ imgUrl =>
+          Game(id, name, store, storeUrl, imgUrl)
       }
   }
 
@@ -68,11 +83,11 @@ object Game {
 
     DB.withConnection { implicit connection =>
 
-      val games = SQL(
+      val gWithAllP = SQL(
         """
-          select * from games
-          left join price_history on game_id = games.id
-          where upper(games.name) like upper({filter})
+          select * from scraped_games
+          left join price_history on game_id = scraped_games.id
+          where upper(scraped_games.name) like upper({filter})
           order by {orderby} nulls last 
           limit {pagesize} offset {offset}  
         """).on(
@@ -83,13 +98,13 @@ object Game {
 
       val totalRows = SQL(
         """
-          select count(*) from games
-          left join price_history on game_id = games.id
-          where upper(games.name) like upper({filter})
+          select count(*) from scraped_games
+          left join price_history on game_id = scraped_games.id
+          where upper(scraped_games.name) like upper({filter})
         """).on(
           'filter -> filter).as(scalar[Long].single)
 
-      Page(games, page, offset, totalRows)
+      Page(gWithAllP, page, offset, totalRows)
 
     }
   }
@@ -102,6 +117,7 @@ object Game {
   }
 
   // Retrieve a game by name
+  // FIX THIS
   def findByName(name: String): Option[Game] = {
     DB.withConnection { implicit connection =>
       SQL("select * from games where upper(name) like upper({name})")
@@ -113,8 +129,8 @@ object Game {
   def findPartialName(name: String): List[String] = {
     DB.withConnection { implicit connection =>
       SQL("""
-          select name from games 
-          where upper(substring(name from 1 for {sz})) % upper({name}) 
+          select distinct (select name from scraped_games 
+          where upper(substring(name from 1 for {sz})) % upper({name}))
           order by meta_critic desc nulls last
           limit 4
           """)
@@ -127,28 +143,58 @@ object Game {
     DB.withConnection { implicit connection =>
       SQL(
         """
-          insert into games 
-          (steam_id, name, url, img_url, release_date, meta_critic)
-          values (
-          {steam_id}, {name}, {url}, {img_url}, {release_date}, {meta_critic})
+          insert into scraped_games 
+          (name, store, store_url, img_url)
+          values ({name}, {store}, {store_url}, {img_url})
         """).on(
-          'steam_id -> that.steamId,
           'name -> that.name,
-          'url -> that.url,
-          'img_url -> that.imgUrl,
-          'release_date -> that.releaseDate,
-          'meta_critic -> that.metacritic).executeInsert()
+          'store -> that.store,
+          'store_url -> that.storeUrl,
+          'img_url -> that.imgUrl).executeInsert()
     }
   }
-  
-  def insertOtherStore(that: Game) = {
+
+  /*def insertOtherStore(that: Game) = {
     DB.withConnection { implicit connection =>
       SQL(
-       """
+        """
        insert into gamersgate_leftover (name)
           select {name}
        where not exists (select name from games where upper(name) = upper({name}))
        """).on('name -> that.name).executeInsert()
+    }
+  }*/
+
+}
+
+object SteamGame {
+
+  val simple = {
+    get[Int]("steam_games.steam_id") ~
+      get[String]("steam_games.name") ~
+      get[String]("steam_games.release_date") ~
+      get[Int]("steam_games.meta_critic") ~
+      get[Int]("steam_games.game_id") map {
+        case steamId ~ name ~ releaseDate ~ metacritic ~ gameId =>
+          SteamGame(steamId, name, releaseDate, metacritic, gameId)
+      }
+  }
+
+  def insert(that: SteamGame) = {
+    DB.withConnection { implicit connection =>
+      SQL(
+        """
+	       insert into steam_games
+	       (steam_id, name, release_date, meta_critic, game_id) 
+	       values ({steam_id}, {name}, {release_date}, {meta_critic}, 
+	       (select id from scraped_games where scraped_games.name = {name}
+    	   and scraped_games.store = {store} ))
+	    """).on(
+          'steam_id -> that.steamId,
+          'name -> that.name,
+          'release_date -> that.releaseDate,
+          'meta_critic -> that.metacritic,
+          'store -> "Steam").executeInsert()
     }
   }
 
@@ -159,49 +205,39 @@ object Price {
   // Parse a price history from a ResultSet
   val simple = {
     get[Pk[Long]]("price_history.id") ~
-      get[String]("price_history.name") ~
-      get[Option[Double]]("price_history.price_on_steam") ~
-      get[Option[Double]]("price_history.price_on_amazon") ~
-      get[Date]("price_history.date_recorded") ~
+      get[Double]("price_history.price_on_x") ~
       get[Boolean]("price_history.on_sale") ~
-      get[Option[Int]]("price_history.game_id") map {
-        case id ~ name ~ priceOnSteam ~ priceOnAmazon ~ onSale ~ dateRecorded ~ gameId =>
-          Price(id, name, priceOnSteam, priceOnAmazon, onSale, dateRecorded, gameId)
+      get[Date]("price_history.date_recorded") ~
+      get[Int]("price_history.game_id") map {
+        case id ~ priceOnX ~ onSale ~ dateRecorded ~ gameId =>
+          Price(id, priceOnX, onSale, dateRecorded, gameId)
       }
   }
 
   // Find by gameId
-  def findById(gameId: Long): List[Price] = {
+  def findByGameId(gameId: Long): List[Price] = {
     DB.withConnection { implicit connection =>
       SQL("select * from price_history where game_id = {game_id}")
         .on('game_id -> gameId).as(Price.simple *)
     }
   }
 
-  // Find by name
-  def findByName(name: String): List[Price] = {
-    DB.withConnection { implicit connection =>
-      SQL("select * from price_history where upper(name) like upper({name})")
-        .on('name -> name).as(Price.simple *)
-    }
-  }
-
   // Insert a price
-  def insert(that: Price) = {
+  def insert(that: Price, game: Game) = {
     DB.withConnection { implicit connection =>
       SQL(
         """
-	        insert into price_history 
-	        (name, price_on_steam, price_on_amazon, on_sale, date_recorded, game_id) 
-	        values (
-            {name}, {price_on_steam}, {price_on_amazon}, {on_sale}, {date_recorded}, 
-	        (select id from games where name = {name}))
-	     """).on(
-          'name -> that.name,
-          'price_on_steam -> that.priceOnSteam,
-          'price_on_amazon -> that.priceOnAmazon,
+	       insert into price_history 
+	       (price_on_x, on_sale, date_recorded, game_id) 
+	       values ({price_on_x}, {on_sale}, {date_recorded}, 
+	       (select id from scraped_games where scraped_games.name = {name}
+    	   and scraped_games.store = {store} ))
+	    """).on(
+          'price_on_x -> that.priceOnX,
           'on_sale -> that.onSale,
-          'date_recorded -> that.dateRecorded).executeInsert()
+          'date_recorded -> that.dateRecorded,
+          'name -> game.name,
+          'store -> game.store).executeInsert()
     }
   }
 }
