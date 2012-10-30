@@ -108,17 +108,17 @@ object Game {
         .on('name -> name).as(Game.simple.singleOpt)
     }
   }
-  
+
   // Retrieve a list of matching game names
   def findPartialName(name: String): List[String] = {
     DB.withConnection { implicit connection =>
       SQL("""
           select name from games 
-          where upper(name) like upper({name}) 
+          where upper(substring(name from 1 for {sz})) % upper({name}) 
           order by meta_critic desc nulls last
           limit 4
           """)
-        .on('name -> name).as(str("name") *)
+        .on('name -> name, 'sz -> name.length).as(str("name") *)
     }
   }
 
@@ -138,6 +138,17 @@ object Game {
           'img_url -> that.imgUrl,
           'release_date -> that.releaseDate,
           'meta_critic -> that.metacritic).executeInsert()
+    }
+  }
+  
+  def insertOtherStore(that: Game) = {
+    DB.withConnection { implicit connection =>
+      SQL(
+       """
+       insert into gamersgate_leftover (name)
+          select {name}
+       where not exists (select name from games where upper(name) = upper({name}))
+       """).on('name -> that.name).executeInsert()
     }
   }
 

@@ -12,6 +12,11 @@ create table games (
 	meta_critic		int check (meta_critic > 0)
 );
 
+create table gamersgate_leftover (
+	id				serial not null primary key,
+	name			varchar(255) not null unique
+);
+
 create table price_history (
 	id				serial not null primary key,
 	name			varchar(255) not null,
@@ -24,6 +29,8 @@ create table price_history (
 );
 
 create index on games (name);
+
+CREATE INDEX game_name_trigram_idx ON games USING gist(name gist_trgm_ops);
 
 create index on price_history (name);
 

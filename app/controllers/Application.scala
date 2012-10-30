@@ -7,14 +7,12 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.data.validation.Constraints._
 
-import anorm._
-
 import views._
 import models._
 
 import scala.util.control.Exception._
 
-import play.api.libs.json._
+import play.api.libs.json.Json._
 
 import play.api.libs.concurrent._
 import play.api.Play.current
@@ -22,22 +20,47 @@ import play.api.Play.current
 import akka.util.Duration
 import akka.util.duration._
 
+import org.postgresql.util._
+
 object Application extends Controller {
 
-  val Home = Redirect(routes.Application.list(0, 2, ""))
+  /*
+   * Testing code.
+   */
 
-  val c1 = SteamScraper(1).getAll
+  def ggins = Action {
+    GamersGateScraper(2).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
+    Ok("hello")
+  }
 
-  // Works!! Catches any errors from duplicate values etc.
-  
-  
+ /* def reindexOther = Action {
+    val promOfIndex: Promise[String] = Akka.future {
+      val start: Long = System.currentTimeMillis
+      for (i <- (1 to GamersGateDets.finalPage).par) {
+        GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
+      }
+      "Done! " + (System.currentTimeMillis - start).millis.toString
+    }
+    Async {
+      promOfIndex.orTimeout("Oops", 60000).map { eitherIndorTimeout =>
+        eitherIndorTimeout.fold(
+          timeout => InternalServerError(timeout),
+          i => Ok("All " + i))
+      }
+    }
+  }*/
+
+  /*
+   * Real working code.
+   */
+
   def reindex = Action {
     val promOfIndex: Promise[String] = Akka.future {
-       val start: Long = System.currentTimeMillis
+      val start: Long = System.currentTimeMillis
       for (i <- (1 to SteamDets.finalPage).par) {
-        SteamScraper(i).getAll flatMap (x => catching(classOf[Exception]) opt Combined.insert(x))
+        SteamScraper(i).getAll flatMap (x => catching(classOf[PSQLException]) opt Combined.insert(x))
       }
-      "Done! " + (System.currentTimeMillis - start).millis.toString 
+      "Done! " + (System.currentTimeMillis - start).millis.toString
     }
     Async {
       promOfIndex.orTimeout("Oops", 20000).map { eitherIndorTimeout =>
@@ -47,39 +70,18 @@ object Application extends Controller {
       }
     }
   }
-  
- /* def picalc = Action{
-        val tt = ActorForScrape.calculate(nrOfWorkers = 32, nrOfElements = 20000, nrOfMessages = 20000)
-        Ok("Hello")
-  }*/
 
-  def autocompleteSearch(term: String) = Action { Ok(Json.toJson(Game.findPartialName(term + "%"))) }
+  def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }
 
-  /*
-  val tt = c1 flatMap (x => catching(classOf[Exception]) opt Combined.insert(x))
-  println(tt)
-
-  println(SteamDets.finalPage)*/
-
-  val testtt = Action {
-    println(Game.findPartialName("%" + "dis" + "%"))
-    Ok("happy")
+  def qlist(name: String) = Action {
+    list(0, 2, name)
   }
-
-  // Input form
-  val pageToScrapeForm = Form(
-    mapping("storePage" -> number.verifying(min(0), max(50)))(SteamScraper.apply)(SteamScraper.unapply))
-
-  /*
-    pageToScrapeForm.bindFromRequest.fold(
-      formWithErrors => BadRequest(html.index("Ooops, didn't work", formWithErrors, List())),
-      x => Ok(html.index("It worked!", pageToScrapeForm, x getAll)))
-  } */
 
   def list(page: Int, orderBy: Int, filter: String) = Action { implicit request =>
     Ok(html.list(Game.list(page = page, orderBy = orderBy, filter = ("%" + filter + "%")), orderBy, filter))
   }
 
+  val Home = Redirect(routes.Application.list(0, 2, ""))
   def index = Action { Home }
 
 }
