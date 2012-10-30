@@ -2,6 +2,8 @@
 
 # --- !Ups
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 create table games (
 	id				serial not null primary key,
 	steam_id		int unique check (steam_id > 0),
@@ -37,6 +39,8 @@ create index on price_history (name);
 # --- !Downs
 
 drop table price_history;
+
+drop table gamersgate_leftover;
 
 drop table games;
 
