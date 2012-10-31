@@ -3,6 +3,7 @@
 # --- !Ups
 
 create extension if not exists pg_trgm;
+create extension if not exists fuzzystrmatch;
 
 create table scraped_games (
 	id				serial not null primary key,
@@ -10,6 +11,7 @@ create table scraped_games (
 	store			varchar(255) not null,
 	store_url		varchar(255) not null,
 	img_url			varchar(255) not null,
+	unq_game_id		serial not null,
 	unique (name, store)
 );
 

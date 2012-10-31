@@ -22,17 +22,16 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   }
 
   def gameVals(html: Element): Game = {
-    val name = html.getElementsByClass("descr_cont").select("a").attr("title")
-    val gameUrl = html.getElementsByClass("descr_cont").select("a").attr("href")
+    val name = html.getElementsByClass("ttl").attr("title")
+    val gameUrl = html.getElementsByClass("ttl").attr("href")
     val imgUrl = html.getElementsByClass("box_cont").select("img").attr("src")
 
     Game(NotAssigned, name, GamersGateDets.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
-    val name = html.getElementsByClass("descr_cont").select("a").attr("title")
-    val tempPrice = html.getElementsByClass("prtag").first.children
-    val priceS = $anitizer(tempPrice.first.ownText)
+    val name = html.getElementsByClass("ttl").attr("title")
+    val priceS = $anitizer(html.getElementsByClass("prtag").text)
     val onSale = !html.getElementsByClass("discount").isEmpty
 
     Price(NotAssigned, priceS, onSale, new Date(), 0)
@@ -43,7 +42,7 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 object GamersGateDets extends StoreDetails {
 
   val name = "GamersGate"
-    
+
   val storeHead =
     "http://www.gamersgate.com/games?filter=available&pg="
 

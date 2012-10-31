@@ -34,7 +34,11 @@ abstract class StoreDetails {
 
 trait SafeMoney {
 
-  def rm$(s: String): Double = if (s(0) == '$') s.tail.toDouble else scala.Double.PositiveInfinity
+  def rm$(s: String): Double = {
+    if (s(0) == '$') s.tail.toDouble
+    else scala.Double.PositiveInfinity
+  }
+
   def $anitizer(price: String): Double = {
     // "$59.99" -> 59.99 
     if (price.contains('$')) {
@@ -42,6 +46,9 @@ trait SafeMoney {
         val discount = price.split(' ')
         // "$59.99 $49.99" -> 49.99
         math.min(rm$(discount(0)), rm$(discount(1)))
+      } else if (price.contains('%')) {
+        val ind = price.indexOf('%')
+        rm$(price.drop(ind + 1))
       } else rm$(price)
     } else {
       try {
@@ -51,4 +58,5 @@ trait SafeMoney {
       }
     }
   }
+
 }

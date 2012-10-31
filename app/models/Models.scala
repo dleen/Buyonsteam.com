@@ -28,10 +28,10 @@ case class Price(id: Pk[Long] = NotAssigned,
 
 case class GwithP(g: Game, p: Price)
 
-case class GSwP(sg: SteamGame, gwp: GwithP) 
+case class GSwP(sg: SteamGame, gwp: GwithP)
 
 object GSwP {
-  
+
   def insert(x: GSwP) = {
     GwithP.insert(x.gwp)
     SteamGame.insert(x.sg)
@@ -87,22 +87,25 @@ object Game {
         """
           select * from scraped_games
           left join price_history on game_id = scraped_games.id
-          where upper(scraped_games.name) like upper({filter})
-          order by {orderby} nulls last 
+          where (levenshtein(lower(substring(scraped_games.name from 1 for {sz})),
+          lower({filter})) < 3)
+          order by {orderby}
           limit {pagesize} offset {offset}  
         """).on(
           'pagesize -> pageSize,
           'offset -> offset,
           'filter -> filter,
-          'orderby -> orderBy).as(Game.withPrice *)
+          'orderby -> orderBy,
+          'sz -> (filter.length + 1)).as(Game.withPrice *)
 
       val totalRows = SQL(
         """
           select count(*) from scraped_games
           left join price_history on game_id = scraped_games.id
-          where upper(scraped_games.name) like upper({filter})
+          where (levenshtein(lower(substring(scraped_games.name from 1 for {sz})),
+          lower({filter})) < 3)
         """).on(
-          'filter -> filter).as(scalar[Long].single)
+          'filter -> filter, 'sz -> (filter.length + 1)).as(scalar[Long].single)
 
       Page(gWithAllP, page, offset, totalRows)
 
@@ -129,12 +132,11 @@ object Game {
   def findPartialName(name: String): List[String] = {
     DB.withConnection { implicit connection =>
       SQL("""
-          select distinct (select name from scraped_games 
-          where upper(substring(name from 1 for {sz})) % upper({name}))
-          order by meta_critic desc nulls last
-          limit 4
+          select name from scraped_games 
+          where (levenshtein(lower(substring(name from 1 for {sz})), lower({name})) < 3)
+          limit 6
           """)
-        .on('name -> name, 'sz -> name.length).as(str("name") *)
+        .on('name -> name, 'sz -> (name.length + 1)).as(str("name") *)
     }
   }
 
@@ -154,16 +156,19 @@ object Game {
     }
   }
 
-  /*def insertOtherStore(that: Game) = {
+  // NOT FINISHED
+  // IDEA IS TO UPDATE UNQ_GAME_ID TO BE THE
+  // SAME FOR GAMES WITH SIMILAR ENOUGH NAMES
+  def potentialSimNames = {
     DB.withConnection { implicit connection =>
       SQL(
         """
-       insert into gamersgate_leftover (name)
-          select {name}
-       where not exists (select name from games where upper(name) = upper({name}))
-       """).on('name -> that.name).executeInsert()
+    	  select scraped_games.name from 
+    	  scraped_games join steam_games 
+    	  on (scraped_games.name = steam_games.name and scraped_games.store != 'Steam')
+    	 """)
     }
-  }*/
+  }
 
 }
 
