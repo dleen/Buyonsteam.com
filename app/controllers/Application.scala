@@ -45,14 +45,24 @@ object Application extends Controller {
 
   def reindexOther = Action {
     val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
+      val start1: Long = System.currentTimeMillis
       for (i <- (1 to GamersGateDets.finalPage).par) {
         //GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
         GamersGateScraper(i).getAll map (x =>
           try { GwithP.insert(x) }
           catch { case e => println(e) })
       }
-      "Done! " + (System.currentTimeMillis - start).millis.toString
+      "GamersGate Done! " + (System.currentTimeMillis - start1).millis.toString
+
+      val start2: Long = System.currentTimeMillis
+      for (i <- (1 to GreenmanGamingDets.finalPage).par) {
+        GreenmanGamingScraper(i).getAll map (x =>
+          try { GwithP.insert(x) }
+          catch { case e => println(e) })
+      }
+      "GreenmanGaming Done! " + (System.currentTimeMillis - start2).millis.toString
+
+      "Done! " + (System.currentTimeMillis - start1).millis.toString
     }
     Async {
       promOfIndex.orTimeout("Oops", 120000).map { eitherIndorTimeout =>
