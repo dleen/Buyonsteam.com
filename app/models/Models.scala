@@ -33,19 +33,20 @@ case class GSwP(sg: SteamGame, gwp: GwithP)
 object GSwP {
 
   def insert(x: GSwP) = {
-    GwithP.insert(x.gwp)
+    GwithP.insertGame(x.gwp)
+    // Is not completed upon exception!
+    // Split into 2
     SteamGame.insert(x.sg)
   }
 }
 
 object GwithP {
 
-  def insert(c: GwithP) = {
+  def insertGame(c: GwithP) = {
     Game.insert(c.g)
-    Price.insert(c.p, c.g)
   }
 
-  def priceInsert(c: GwithP) = {
+  def insertPrice(c: GwithP) = {
     Price.insert(c.p, c.g)
   }
 

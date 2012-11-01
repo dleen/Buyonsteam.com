@@ -31,13 +31,53 @@ object Application extends Controller {
   /*
    * Testing code.
    */
-	def manualMatching = Action {
-	  Ok(html.manmatch(DataCleanup.matchManually))
-	  }
+  def manualMatching = Action {
+    Ok(html.manmatch(DataCleanup.matchManually))
+  }
 
   /*
    * Real working code.
    */
+
+  def grabprices = Action {
+    val promOfIndex: Promise[String] = Akka.future {
+      val start: Long = System.currentTimeMillis
+
+      for (i <- (1 to SteamDets.finalPage).par) {
+        SteamScraper(i).getAll map { x =>
+          try { GwithP.insertPrice(x) }
+          catch {
+            case e => {
+              println(e)
+              println(x)
+            }
+          }
+        }
+      }
+
+      for (j <- (1 to GamersGateDets.finalPage).par) {
+        //GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
+        GamersGateScraper(j).getAll map { x =>
+          try { GwithP.insertPrice(x) }
+          catch {
+            case e => {
+              println(e)
+              println(x)
+            }
+          }
+        }
+      }
+
+      "Done! " + (System.currentTimeMillis - start).millis.toString
+    }
+    Async {
+      promOfIndex.orTimeout("Oops", 180000).map { eitherIndorTimeout =>
+        eitherIndorTimeout.fold(
+          timeout => InternalServerError(timeout),
+          i => Ok("All " + i))
+      }
+    }
+  }
 
   def reindexOther = Action {
     val promOfIndex: Promise[String] = Akka.future {
@@ -45,7 +85,7 @@ object Application extends Controller {
       for (i <- (1 to GamersGateDets.finalPage).par) {
         //GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
         GamersGateScraper(i).getAll map (x =>
-          try { GwithP.insert(x) }
+          try { GwithP.insertGame(x) }
           catch { case e => println(e) })
       }
       "Done! " + (System.currentTimeMillis - start).millis.toString

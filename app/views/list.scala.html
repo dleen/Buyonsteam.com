@@ -42,7 +42,8 @@ orderBy) @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"}">
 					@header(2, "Game")
 					@header(3, "Store")
 					@header(4, "Price")
-					@header(5, "On Sale?")
+					@header(5, "Date recorded")
+					@header(6, "On Sale?")
 				</tr>
 			</thead>
 			<tbody>	
@@ -52,6 +53,7 @@ orderBy) @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"}">
 					<td> @game.name </td>
 					<td> @game.store </td>
 					<td> @price.map(_.priceOnX).getOrElse { <em>N/A</em> } </td>
+					<td> @price.map(_.dateRecorded).getOrElse { <em>N/A</em> } </td>
 					<td>@price.map(_.onSale).getOrElse { <em>N/A</em> } </td>
 				</tr>
 			}
