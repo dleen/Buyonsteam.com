@@ -22,7 +22,6 @@ logs
 eclipse
 .#*
 *~
-*.~*
 *.pyc
 documentation/api
 .scala_dependencies
