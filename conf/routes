@@ -9,7 +9,7 @@ GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
 
 GET	/reindex				controllers.Application.reindex
 GET	/reindexother			controllers.Application.reindexOther
-GET /ggins					controllers.Application.ggins
+GET /manmatch				controllers.Application.manualMatching
 
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
 

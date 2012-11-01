@@ -31,13 +31,9 @@ object Application extends Controller {
   /*
    * Testing code.
    */
-
-  def ggins = Action {
-    GamersGateScraper(2).getGames map (x =>
-      try { Game.insert(x) }
-      catch { case e => println(e) })
-    Ok("hello")
-  }
+	def manualMatching = Action {
+	  Ok(html.manmatch(DataCleanup.matchManually))
+	  }
 
   /*
    * Real working code.

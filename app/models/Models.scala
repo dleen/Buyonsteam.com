@@ -132,8 +132,9 @@ object Game {
   def findPartialName(name: String): List[String] = {
     DB.withConnection { implicit connection =>
       SQL("""
-          select name from scraped_games 
-          where (levenshtein(lower(substring(name from 1 for {sz})), lower({name})) < 3)
+          select similarity({name}, name), name from scraped_games 
+          where (levenshtein(lower(substring(name from 1 for {sz})), lower({name})) < 2)
+          order by similarity desc
           limit 6
           """)
         .on('name -> name, 'sz -> (name.length + 1)).as(str("name") *)
@@ -153,20 +154,6 @@ object Game {
           'store -> that.store,
           'store_url -> that.storeUrl,
           'img_url -> that.imgUrl).executeInsert()
-    }
-  }
-
-  // NOT FINISHED
-  // IDEA IS TO UPDATE UNQ_GAME_ID TO BE THE
-  // SAME FOR GAMES WITH SIMILAR ENOUGH NAMES
-  def potentialSimNames = {
-    DB.withConnection { implicit connection =>
-      SQL(
-        """
-    	  select scraped_games.name from 
-    	  scraped_games join steam_games 
-    	  on (scraped_games.name = steam_games.name and scraped_games.store != 'Steam')
-    	 """)
     }
   }
 
@@ -247,4 +234,72 @@ object Price {
   }
 }
 
+case class DataCleanup(sim: Double, n1: String, id1: Int, n2: String, id2: Int)
+
+object DataCleanup {
+
+  def matchExactNames = {
+    DB.withConnection { implicit connection =>
+      SQL(
+        """
+        with pairs (a, b) as
+        (select n1.unq_game_id, n2.unq_game_id
+        from scraped_games n1
+    	join scraped_games n2 on lower(n1.name) = lower(n2.name) AND n1.store <> n2.store 
+        AND n1.unq_game_id <> n2.unq_game_id
+    	where n1.unq_game_id < n2.unq_game_id
+    	order by n1.unq_game_id)
+    	update scraped_games set unq_game_id = a from pairs where unq_game_id = b  
+       """).executeUpdate()
+    }
+  }
+
+  def matchSimilarNames = {
+    DB.withConnection { implicit connection =>
+      SQL(
+        """
+        select set_limit(1);
+    	with matched(a, b, c) as (
+    	SELECT similarity(n1.name, n2.name), n1.unq_game_id, n2.unq_game_id
+    	FROM   scraped_games n1
+    	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
+    	AND lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3))
+    	AND lower(n1.name) % lower(n2.name)
+    	where n1.unq_game_id < n2.unq_game_id)
+    	update scraped_games set unq_game_id = b from matched where unq_game_id = c
+       """).executeUpdate()
+    }
+  }
+
+
+  val simple = {
+    get[Double]("a") ~
+    get[String]("b") ~
+      get[Int]("c") ~
+      get[String]("d") ~
+      get[Int]("e") map {
+        case sim ~ n1 ~ id1 ~ n2 ~ id2 =>
+          DataCleanup(sim, n1, id1, n2, id2)
+      }
+  }
+
+  def matchManually = {
+    DB.withConnection { implicit connection =>
+      SQL(
+        """
+        with matched(a,b,c,d,e) as (
+        SELECT cast(similarity(n1.name, n2.name) as double precision), 
+          n1.name, n1.unq_game_id, n2.name, n2.unq_game_id
+    	FROM   scraped_games n1
+    	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
+    	AND lower(substring(n1.name from 1 for 4)) = lower(substring(n2.name from 1 for 4))
+    	AND levenshtein(lower(n1.name), lower(n2.name)) < 2
+    	where n1.unq_game_id < n2.unq_game_id
+    	order by similarity desc)
+        select * from matched
+       """).as(DataCleanup.simple *)
+    }
+  }
+
+}
 
