@@ -7,14 +7,20 @@ GET	/						controllers.Application.index
 
 GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
 
-GET	/reindex				controllers.Application.reindex
-GET	/reindexother			controllers.Application.reindexOther
+GET	/reindexsteam			controllers.Application.reindexSteam
+GET	/reindexgamersgate		controllers.Application.reindexGamersGate
+GET	/reindexdlgamer			controllers.Application.reindexDlGamer
+
 GET /grabprices				controllers.Application.grabprices
 GET /manmatch				controllers.Application.manualMatching
+GET /matchexact				controllers.Application.matchExact
+GET /matchsimilar			controllers.Application.matchSimilar
 
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
 
 GET	/:name					controllers.Application.qlist(name: String)
+
+POST /matchem				controllers.Application.matchem(id1: Int, id2: Int)
 
 # Map static resources from the /public folder to the /assets URL path
 GET	/assets/*file			controllers.Assets.at(path="/public", file)

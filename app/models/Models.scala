@@ -32,12 +32,18 @@ case class GSwP(sg: SteamGame, gwp: GwithP)
 
 object GSwP {
 
-  def insert(x: GSwP) = {
+  def insertGame(x: GSwP) = {
     GwithP.insertGame(x.gwp)
-    // Is not completed upon exception!
-    // Split into 2
+  }
+
+  def insertPrice(x: GSwP) = {
+    GwithP.insertPrice(x.gwp)
+  }
+
+  def insertSteam(x: GSwP) = {
     SteamGame.insert(x.sg)
   }
+
 }
 
 object GwithP {
@@ -220,11 +226,11 @@ object Price {
     DB.withConnection { implicit connection =>
       SQL(
         """
-	       insert into price_history 
-	       (price_on_x, on_sale, date_recorded, game_id) 
-	       values ({price_on_x}, {on_sale}, {date_recorded}, 
-	       (select id from scraped_games where scraped_games.name = {name}
-    	   and scraped_games.store = {store} ))
+	    insert into price_history 
+	    (price_on_x, on_sale, date_recorded, game_id) 
+	    values ({price_on_x}, {on_sale}, {date_recorded}, 
+	    (select id from scraped_games where scraped_games.name = {name}
+    	and scraped_games.store = {store} ))
 	    """).on(
           'price_on_x -> that.priceOnX,
           'on_sale -> that.onSale,
@@ -251,7 +257,7 @@ object DataCleanup {
     	where n1.unq_game_id < n2.unq_game_id
     	order by n1.unq_game_id)
     	update scraped_games set unq_game_id = a from pairs where unq_game_id = b  
-       """).executeUpdate()
+        """).execute()
     }
   }
 
@@ -268,14 +274,13 @@ object DataCleanup {
     	AND lower(n1.name) % lower(n2.name)
     	where n1.unq_game_id < n2.unq_game_id)
     	update scraped_games set unq_game_id = b from matched where unq_game_id = c
-       """).executeUpdate()
+        """).execute()
     }
   }
 
-
   val simple = {
     get[Double]("a") ~
-    get[String]("b") ~
+      get[String]("b") ~
       get[Int]("c") ~
       get[String]("d") ~
       get[Int]("e") map {
@@ -290,7 +295,7 @@ object DataCleanup {
         """
         with matched(a,b,c,d,e) as (
         SELECT cast(similarity(n1.name, n2.name) as double precision), 
-          n1.name, n1.unq_game_id, n2.name, n2.unq_game_id
+        n1.name, n1.unq_game_id, n2.name, n2.unq_game_id
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
     	AND lower(substring(n1.name from 1 for 4)) = lower(substring(n2.name from 1 for 4))
@@ -298,7 +303,15 @@ object DataCleanup {
     	where n1.unq_game_id < n2.unq_game_id
     	order by similarity desc)
         select * from matched
-       """).as(DataCleanup.simple *)
+        """).as(DataCleanup.simple *)
+    }
+  }
+
+  def equateIds(id1: Int, id2: Int) = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+          update scraped_games set unq_game_id = {id1} where unq_game_id = {id2}
+          """).on('id1 -> id1, 'id2 -> id2).executeUpdate()
     }
   }
 

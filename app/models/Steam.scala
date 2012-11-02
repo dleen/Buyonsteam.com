@@ -17,7 +17,7 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     GSwP(steamVals(html), GwithP(gameVals(html), priceVals(html)))  
   
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(SteamDets.storeHead + pageN.toString)
+    val doc = Jsoup.connect(Steam.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("search_result_row").toList
@@ -30,7 +30,7 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     val gameUrl = html.select("a").attr("href")
     val imgUrl = html.getElementsByClass("search_capsule").select("img").attr("src")
 
-    Game(NotAssigned, name, SteamDets.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, Steam.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
@@ -67,7 +67,7 @@ object SteamScraper {
 
 }
 
-object SteamDets extends StoreDetails {
+object Steam extends StoreDetails {
 
   val name = "Steam"
     

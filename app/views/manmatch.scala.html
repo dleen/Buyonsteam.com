@@ -1,5 +1,7 @@
 @(list: List[DataCleanup])
 
+@import helper._
+
 <!DOCTYPE html>
 
 <html lang="en">
@@ -82,6 +84,9 @@
 				<td> @x.id1 </td>
 				<td> @x.n2 </td>
 				<td> @x.id2 </td>
+				<td> @form(routes.Application.matchem(x.id1, x.id2), 'class -> "navbar-form pull-right") {
+        			<input type="submit" value="Match these names" class="btn danger">
+    				}</td>
 			</tr>
 			}	
 		</tbody>

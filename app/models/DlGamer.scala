@@ -6,14 +6,14 @@ import org.jsoup._
 import org.jsoup.nodes._
 import scala.collection.JavaConversions._
 
-case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney { 
+case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
   def getAll: List[GwithP] = scrapePage(pageN, allVals)
   def getGames: List[Game] = scrapePage(pageN, gameVals)
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = { 
-    val doc = Jsoup.connect(GamersGateDets.storeHead + pageN.toString)
+  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
+    val doc = Jsoup.connect(DlGamer.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("box").toList
@@ -23,39 +23,39 @@ case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
   def gameVals(html: Element): Game = {
     val name = html.getElementsByClass("title").text
-    val gameUrl = html.getElementsByClass("title").attr("href")
-    val imgUrl = html.select("img").attr("src")
+    val gameUrl = html.getElementsByClass("title").select("a").attr("href")
+    val imgUrl = "http://dlgamer.us" + html.select("img").attr("src")
 
-    Game(NotAssigned, name, GamersGateDets.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, DlGamer.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
     val name = html.getElementsByClass("title").text
     val priceS = $anitizer(html.getElementsByClass("price").text)
-    val onSale = !html.getElementsByClass("old-price").isEmpty
+    val onSale = !html.getElementsByClass("old-price").text.isEmpty
 
     Price(NotAssigned, priceS, onSale, new Date(), 0)
   }
 
 }
 
-object DlGamerDets extends StoreDetails { 
+object DlGamer extends StoreDetails {
 
   val name = "DlGamer"
 
   val storeHead =
     "http://www.dlgamer.us/download-pc_games-c-27.html?page="
 
-  def getFinalPage(storeTail: String = "1"): Int = { 
+  def getFinalPage(storeTail: String = "1"): Int = {
     val doc = Jsoup.connect(storeHead + storeTail).get()
     val paginator = doc.getElementsByClass("numberpage").select("a").toList
     val last = paginator.last.text
-    if(last == storeTail) storeTail.toInt
-    else finalPage(last)
+    if (last == storeTail) storeTail.toInt
+    else getFinalPage(last)
   }
-  
-// TODO - Find final page automatically
-  val finalPage = getFinalPage("1")
-  
+
+  // lol solution
+  val finalPage = 40
+
 }
 

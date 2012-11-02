@@ -6,14 +6,14 @@ import org.jsoup._
 import org.jsoup.nodes._
 import scala.collection.JavaConversions._
 
-case class GreenmanGamingScraper(pageN: Int = 1) extends Scraper with SafeMoney {
+sealed case class GreenmanGamingScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
   def getAll: List[GwithP] = scrapePage(pageN, allVals)
   def getGames: List[Game] = scrapePage(pageN, gameVals)
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = { 
-    val doc = Jsoup.connect(GamersGateDets.storeHead + pageN.toString)
+    val doc = Jsoup.connect(GreenmanGaming.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("border-container").toList
@@ -26,7 +26,7 @@ case class GreenmanGamingScraper(pageN: Int = 1) extends Scraper with SafeMoney 
     val gameUrl = html.attr("href")
     val imgUrl = html.select("img").attr("src")
 
-    Game(NotAssigned, name, GamersGateDets.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, GreenmanGaming.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
@@ -39,7 +39,7 @@ case class GreenmanGamingScraper(pageN: Int = 1) extends Scraper with SafeMoney 
 
 }
 
-object GreenmanGamingDets extends StoreDetails {
+object GreenmanGaming extends StoreDetails {
 
   val name = "GreenmanGaming"
 

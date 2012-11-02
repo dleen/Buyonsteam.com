@@ -13,7 +13,7 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(GamersGateDets.storeHead + pageN.toString)
+    val doc = Jsoup.connect(GamersGate.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("product_display").toList
@@ -26,7 +26,7 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     val gameUrl = html.getElementsByClass("ttl").attr("href")
     val imgUrl = html.getElementsByClass("box_cont").select("img").attr("src")
 
-    Game(NotAssigned, name, GamersGateDets.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, GamersGate.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
@@ -39,7 +39,7 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
 }
 
-object GamersGateDets extends StoreDetails {
+object GamersGate extends StoreDetails {
 
   val name = "GamersGate"
 
