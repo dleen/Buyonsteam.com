@@ -10,6 +10,8 @@ GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
 GET	/reindexsteam			controllers.Application.reindexSteam
 GET	/reindexgamersgate		controllers.Application.reindexGamersGate
 GET	/reindexdlgamer			controllers.Application.reindexDlGamer
+GET	/reindexgamestop		controllers.Application.reindexGameStop
+GET	/reindexgreenman		controllers.Application.reindexGreenmanGaming
 
 GET /grabprices				controllers.Application.grabprices
 GET /manmatch				controllers.Application.manualMatching

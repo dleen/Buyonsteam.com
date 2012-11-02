@@ -13,7 +13,7 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(GamersGate.storeHead + pageN.toString)
+    val doc = Jsoup.connect(GamersGateScraper.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("product_display").toList
@@ -26,12 +26,15 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     val gameUrl = html.getElementsByClass("ttl").attr("href")
     val imgUrl = html.getElementsByClass("box_cont").select("img").attr("src")
 
-    Game(NotAssigned, name, GamersGate.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, GamersGateScraper.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
     val name = html.getElementsByClass("ttl").attr("title")
-    val priceS = $anitizer(html.getElementsByClass("prtag").text)
+    val priceS = if (html.hasClass("prtag")) {
+      $anitizer(html.getElementsByClass("prtag").select("span")(1).ownText)
+    } else 0
+
     val onSale = !html.getElementsByClass("discount").isEmpty
 
     Price(NotAssigned, priceS, onSale, new Date(), 0)
@@ -39,7 +42,7 @@ case class GamersGateScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
 }
 
-object GamersGate extends StoreDetails {
+object GamersGateScraper {
 
   val name = "GamersGate"
 
@@ -53,4 +56,20 @@ object GamersGate extends StoreDetails {
 
     navNumSep map { _.toInt } max
   }
+
+  def reindex = {
+    for (i <- (1 to finalPage).par) {
+      GamersGateScraper(i).getAll map { x =>
+        try {
+          GwithP.insertGame(x)
+          println("Inserting game")
+        } catch { case e => println(e) }
+        try {
+          GwithP.insertPrice(x)
+          println("Inserting PRICE")
+        } catch { case e => println(e) }
+      }
+    }
+  }
+
 }

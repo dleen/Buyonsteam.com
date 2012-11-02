@@ -1,5 +1,17 @@
 package models
 
+import play.api._
+import play.api.mvc._
+
+import akka.util.duration._
+import akka.util.Duration
+
+import play.api.libs.concurrent._
+
+import play.api.Play.current
+
+import play.libs.Akka
+
 import anorm._
 import java.util.Date
 import org.jsoup._
@@ -13,11 +25,11 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
   def getAllSteam: List[GSwP] = scrapePage[GSwP](pageN, steamAllVals)
-  def steamAllVals(html: Element): GSwP = 
-    GSwP(steamVals(html), GwithP(gameVals(html), priceVals(html)))  
-  
+  def steamAllVals(html: Element): GSwP =
+    GSwP(steamVals(html), GwithP(gameVals(html), priceVals(html)))
+
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(Steam.storeHead + pageN.toString)
+    val doc = Jsoup.connect(SteamScraper.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("search_result_row").toList
@@ -30,7 +42,7 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     val gameUrl = html.select("a").attr("href")
     val imgUrl = html.getElementsByClass("search_capsule").select("img").attr("src")
 
-    Game(NotAssigned, name, Steam.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, SteamScraper.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
@@ -48,9 +60,8 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     val gameUrl = html.select("a").attr("href")
 
     val gameId = SteamScraper.appId(gameUrl)
-    
-    SteamGame(gameId, name, releaseDate, meta, 0)
 
+    SteamGame(gameId, name, releaseDate, meta, 0)
   }
 }
 
@@ -65,12 +76,8 @@ object SteamScraper {
     else meta.toInt
   }
 
-}
-
-object Steam extends StoreDetails {
-
   val name = "Steam"
-    
+
   val storeHead =
     "http://store.steampowered.com/search/results?&cc=us&category1=998&page="
 
@@ -81,4 +88,24 @@ object Steam extends StoreDetails {
 
     navNumSep(2).toInt
   }
+
+  def reindex = {
+    for (i <- (1 to finalPage).par) {
+      SteamScraper(i).getAllSteam map { x =>
+        try {
+          GSwP.insertGame(x)
+          println("Inserting game")
+        } catch { case e => println(e) }
+        try {
+          GSwP.insertPrice(x)
+          println("Inserting PRICE")
+        } catch { case e => println(e) }
+        try {
+          GSwP.insertSteam(x)
+          println("Inserting steam values")
+        } catch { case e => println(e) }
+      }
+    }
+  }
+
 }

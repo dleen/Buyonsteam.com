@@ -31,6 +31,7 @@ object Application extends Controller {
   /*
    * Testing code.
    */
+
   def manualMatching = Action {
     Ok(html.manmatch(DataCleanup.matchManually))
   }
@@ -48,7 +49,7 @@ object Application extends Controller {
     Ok(html.manmatch(DataCleanup.matchManually))
   }
 
-  //println(GameStopScraper(2).getAll)
+  def blacklist(id1: Int, id2: Int, list: List[Int]) = id1 :: id2 :: list
 
   /*
    * Real working code.
@@ -58,7 +59,7 @@ object Application extends Controller {
     val promOfIndex: Promise[String] = Akka.future {
       val start: Long = System.currentTimeMillis
 
-      for (i <- (1 to Steam.finalPage).par) {
+      for (i <- (1 to SteamScraper.finalPage).par) {
         SteamScraper(i).getAll map { x =>
           try { GwithP.insertPrice(x) }
           catch {
@@ -70,7 +71,7 @@ object Application extends Controller {
         }
       }
 
-      for (j <- (1 to GamersGate.finalPage).par) {
+      for (j <- (1 to GamersGateScraper.finalPage).par) {
         //GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
         GamersGateScraper(j).getAll map { x =>
           try { GwithP.insertPrice(x) }
@@ -94,21 +95,25 @@ object Application extends Controller {
     }
   }
 
-    def reindexDlGamer = Action {
+  def reindexGameStop = Action {
     val promOfIndex: Promise[String] = Akka.future {
       val start: Long = System.currentTimeMillis
-      for (i <- (1 to DlGamer.finalPage).par) {
-        DlGamerScraper(i).getAll map { x =>
-          try {
-            GwithP.insertGame(x)
-            println("Inserting game")
-          } catch { case e => println(e) }
-          try {
-            GwithP.insertPrice(x)
-            println("Inserting PRICE")
-          } catch { case e => println(e) }
-        }
+      GameStopScraper.reindex
+      "GameStop finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
+    }
+    Async {
+      promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
+        eitherIndorTimeout.fold(
+          timeout => InternalServerError(timeout),
+          i => Ok("All " + i))
       }
+    }
+  }
+
+  def reindexDlGamer = Action {
+    val promOfIndex: Promise[String] = Akka.future {
+      val start: Long = System.currentTimeMillis
+      DlGamerScraper.reindex
       "DlGamer finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
     }
     Async {
@@ -119,23 +124,27 @@ object Application extends Controller {
       }
     }
   }
-  
+
   def reindexGamersGate = Action {
     val promOfIndex: Promise[String] = Akka.future {
       val start: Long = System.currentTimeMillis
-      for (i <- (1 to GamersGate.finalPage).par) {
-        GamersGateScraper(i).getAll map { x =>
-          try {
-            GwithP.insertGame(x)
-            println("Inserting game")
-          } catch { case e => println(e) }
-          try {
-            GwithP.insertPrice(x)
-            println("Inserting PRICE")
-          } catch { case e => println(e) }
-        }
-      }
+      GamersGateScraper.reindex
       "GamersGate finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
+    }
+    Async {
+      promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
+        eitherIndorTimeout.fold(
+          timeout => InternalServerError(timeout),
+          i => Ok("All " + i))
+      }
+    }
+  }
+
+  def reindexGreenmanGaming = Action {
+    val promOfIndex: Promise[String] = Akka.future {
+      val start: Long = System.currentTimeMillis
+      GreenmanGamingScraper.reindex
+      "GreenmanGaming finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
     }
     Async {
       promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
@@ -149,22 +158,7 @@ object Application extends Controller {
   def reindexSteam = Action {
     val promOfIndex: Promise[String] = Akka.future {
       val start: Long = System.currentTimeMillis
-      for (i <- (1 to Steam.finalPage).par) {
-        SteamScraper(i).getAllSteam map { x =>
-          try {
-            GSwP.insertGame(x)
-            println("Inserting game")
-          } catch { case e => println(e) }
-          try {
-            GSwP.insertPrice(x)
-            println("Inserting PRICE")
-          } catch { case e => println(e) }
-          try {
-            GSwP.insertSteam(x)
-            println("Inserting steam values")
-          } catch { case e => println(e) }
-        }
-      }
+      SteamScraper.reindex
       "Steam finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
     }
     Async {

@@ -12,45 +12,61 @@ sealed case class GreenmanGamingScraper(pageN: Int = 1) extends Scraper with Saf
   def getGames: List[Game] = scrapePage(pageN, gameVals)
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = { 
-    val doc = Jsoup.connect(GreenmanGaming.storeHead + pageN.toString)
+  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
+    val doc = Jsoup.connect(GreenmanGamingScraper.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+      .timeout(30000)
       .get()
-    val searchResults = doc.getElementsByClass("border-container").toList
+    val searchResults = doc.select("li.border-container").toList
 
     searchResults.map(f(_))
   }
 
   def gameVals(html: Element): Game = {
-    val name = html.attr("h2")
-    val gameUrl = html.attr("href")
-    val imgUrl = html.select("img").attr("src")
+    val name = html.select("h2").text
+    val gameUrl = "http://www.greenmangaming.com" + html.select("a").attr("href")
+    val imgUrl = html.select("img.cover").attr("src")
 
-    Game(NotAssigned, name, GreenmanGaming.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, GreenmanGamingScraper.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
-    val name = html.attr("h2")
-    val priceS = $anitizer(html.getElementsByClass("curPrice").text)
-    val onSale = !html.select("lt").isEmpty
+    val name = html.select("h2").text
+    val priceS = $anitizer(html.select("strong.curPrice").text)
+    val onSale = !html.select("span.lt").isEmpty
 
     Price(NotAssigned, priceS, onSale, new Date(), 0)
   }
 
 }
 
-object GreenmanGaming extends StoreDetails {
+object GreenmanGamingScraper {
 
   val name = "GreenmanGaming"
 
-  val storeHead =
-    "http://www.greenmangaming.com/s/us/en/pc/games/?page="
+  val storeHead = "http://www.greenmangaming.com/s/us/en/pc/games/?page="
 
   val finalPage = {
     val doc = Jsoup.connect(storeHead + "1").get()
     val navNumStr = doc.getElementsByClass("paginator").select("a").text
     val navNumSep = navNumStr.split(' ').toList
 
-    navNumSep map { _.toInt } max
+    navNumSep(2).toInt
   }
+
+  def reindex = {
+    for (i <- (1 to finalPage).par) {
+      GreenmanGamingScraper(i).getAll map { x =>
+        try {
+          GwithP.insertGame(x)
+          println("Inserting game")
+        } catch { case e => println(e) }
+        try {
+          GwithP.insertPrice(x)
+          println("Inserting PRICE")
+        } catch { case e => println(e) }
+      }
+    }
+  }
+
 }

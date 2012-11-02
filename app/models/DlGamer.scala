@@ -13,7 +13,7 @@ case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(DlGamer.storeHead + pageN.toString)
+    val doc = Jsoup.connect(DlGamerScraper.storeHead + pageN.toString)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .get()
     val searchResults = doc.getElementsByClass("box").toList
@@ -26,7 +26,7 @@ case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     val gameUrl = html.getElementsByClass("title").select("a").attr("href")
     val imgUrl = "http://dlgamer.us" + html.select("img").attr("src")
 
-    Game(NotAssigned, name, DlGamer.name, gameUrl, imgUrl)
+    Game(NotAssigned, name, DlGamerScraper.name, gameUrl, imgUrl)
   }
 
   def priceVals(html: Element): Price = {
@@ -39,7 +39,7 @@ case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
 }
 
-object DlGamer extends StoreDetails {
+object DlGamerScraper {
 
   val name = "DlGamer"
 
@@ -56,6 +56,21 @@ object DlGamer extends StoreDetails {
 
   // lol solution
   val finalPage = 40
+
+  def reindex = {
+    for (i <- (1 to finalPage).par) {
+      DlGamerScraper(i).getAll map { x =>
+        try {
+          GwithP.insertGame(x)
+          println("Inserting game")
+        } catch { case e => println(e) }
+        try {
+          GwithP.insertPrice(x)
+          println("Inserting PRICE")
+        } catch { case e => println(e) }
+      }
+    }
+  }
 
 }
 

@@ -25,13 +25,6 @@ abstract class Scraper {
 
 }
 
-abstract class StoreDetails {
-
-  val storeHead: String
-  val finalPage: Int
-
-}
-
 trait SafeMoney {
 
   def rm$(s: String): Double = {
@@ -42,14 +35,11 @@ trait SafeMoney {
   def $anitizer(price: String): Double = {
     // "$59.99" -> 59.99 
     if (price.contains('$')) {
-      if (price.contains(' ')) {
-        val discount = price.split(' ')
-        // "$59.99 $49.99" -> 49.99
-        math.min(rm$(discount(0)), rm$(discount(1)))
-      } else if (price.contains('%')) {
+      if (price.contains('%')) {
         val ind = price.indexOf('%')
         rm$(price.drop(ind + 1))
-      } else rm$(price)
+      }
+      price.split('$').flatMap(_.split(' ')).filterNot(_.isEmpty).map(_.toDouble).min
     } else {
       try {
         price.toDouble

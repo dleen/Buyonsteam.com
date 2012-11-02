@@ -299,7 +299,7 @@ object DataCleanup {
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
     	AND lower(substring(n1.name from 1 for 4)) = lower(substring(n2.name from 1 for 4))
-    	AND levenshtein(lower(n1.name), lower(n2.name)) < 2
+    	AND levenshtein(lower(n1.name), lower(n2.name)) < 3
     	where n1.unq_game_id < n2.unq_game_id
     	order by similarity desc)
         select * from matched
