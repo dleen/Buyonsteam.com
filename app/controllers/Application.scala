@@ -1,5 +1,8 @@
 package controllers
 
+import views._
+import models._
+
 import play.api._
 import play.api.mvc._
 
@@ -7,8 +10,6 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.data.validation.Constraints._
 
-import views._
-import models._
 
 import scala.util.control.Exception._
 
@@ -19,12 +20,6 @@ import play.api.Play.current
 
 import akka.util.Duration
 import akka.util.duration._
-
-import org.postgresql.util._
-
-import org.jsoup._
-import org.jsoup.nodes._
-import scala.collection.JavaConversions._
 
 object Application extends Controller {
 

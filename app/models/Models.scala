@@ -139,10 +139,12 @@ object Game {
   def findPartialName(name: String): List[String] = {
     DB.withConnection { implicit connection =>
       SQL("""
-          select similarity({name}, name), name from scraped_games 
+    	  select * from (
+          select distinct on (unq_game_id) similarity({name}, name), name from scraped_games 
           where (levenshtein(lower(substring(name from 1 for {sz})), lower({name})) < 2)
+          order by unq_game_id, similarity desc
+          limit 6) as sim
           order by similarity desc
-          limit 6
           """)
         .on('name -> name, 'sz -> (name.length + 1)).as(str("name") *)
     }
