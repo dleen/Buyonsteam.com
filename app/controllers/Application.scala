@@ -55,117 +55,25 @@ object Application extends Controller {
    * Real working code.
    */
 
-  def grabprices = Action {
-    val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
-
-      for (i <- (1 to SteamScraper.finalPage).par) {
-        SteamScraper(i).getAll map { x =>
-          try { GwithP.insertPrice(x) }
-          catch {
-            case e => {
-              println(e)
-              println(x)
-            }
-          }
+  def reindexer(store: String) = {
+    Action {
+      val promOfIndex: Promise[String] = Akka.future {
+        val start: Long = System.currentTimeMillis
+        store match {
+          case "steam" => SteamScraper.reindex
+          case "greenman" => GreenmanGamingScraper.reindex
+          case "gamestop" => GameStopScraper.reindex
+          case "dlgamer" => DlGamerScraper.reindex
+          case "gamersgate" => GamersGateScraper.reindex
         }
+        store + " finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
       }
-
-      for (j <- (1 to GamersGateScraper.finalPage).par) {
-        //GamersGateScraper(i).getGames flatMap (x => catching(classOf[PSQLException]) opt Game.insertOtherStore(x))
-        GamersGateScraper(j).getAll map { x =>
-          try { GwithP.insertPrice(x) }
-          catch {
-            case e => {
-              println(e)
-              println(x)
-            }
-          }
+      Async {
+        promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
+          eitherIndorTimeout.fold(
+            timeout => InternalServerError(timeout),
+            i => Ok("All " + i))
         }
-      }
-
-      "Done! " + (System.currentTimeMillis - start).millis.toString
-    }
-    Async {
-      promOfIndex.orTimeout("Oops", 180000).map { eitherIndorTimeout =>
-        eitherIndorTimeout.fold(
-          timeout => InternalServerError(timeout),
-          i => Ok("All " + i))
-      }
-    }
-  }
-
-  def reindexGameStop = Action {
-    val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
-      GameStopScraper.reindex
-      "GameStop finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
-    }
-    Async {
-      promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
-        eitherIndorTimeout.fold(
-          timeout => InternalServerError(timeout),
-          i => Ok("All " + i))
-      }
-    }
-  }
-
-  def reindexDlGamer = Action {
-    val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
-      DlGamerScraper.reindex
-      "DlGamer finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
-    }
-    Async {
-      promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
-        eitherIndorTimeout.fold(
-          timeout => InternalServerError(timeout),
-          i => Ok("All " + i))
-      }
-    }
-  }
-
-  def reindexGamersGate = Action {
-    val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
-      GamersGateScraper.reindex
-      "GamersGate finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
-    }
-    Async {
-      promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
-        eitherIndorTimeout.fold(
-          timeout => InternalServerError(timeout),
-          i => Ok("All " + i))
-      }
-    }
-  }
-
-  def reindexGreenmanGaming = Action {
-    val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
-      GreenmanGamingScraper.reindex
-      "GreenmanGaming finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
-    }
-    Async {
-      promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
-        eitherIndorTimeout.fold(
-          timeout => InternalServerError(timeout),
-          i => Ok("All " + i))
-      }
-    }
-  }
-
-  def reindexSteam = Action {
-    val promOfIndex: Promise[String] = Akka.future {
-      val start: Long = System.currentTimeMillis
-      SteamScraper.reindex
-      "Steam finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
-    }
-    Async {
-      promOfIndex.orTimeout("Oops", 60000).map { eitherIndorTimeout =>
-        eitherIndorTimeout.fold(
-          timeout => InternalServerError(timeout),
-          i => Ok("All " + i))
       }
     }
   }

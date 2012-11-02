@@ -5,6 +5,8 @@ import java.util.Date
 import org.jsoup._
 import org.jsoup.nodes._
 import scala.collection.JavaConversions._
+import scala.util.control.Exception._
+import org.postgresql.util._
 
 case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
@@ -13,12 +15,17 @@ case class DlGamerScraper(pageN: Int = 1) extends Scraper with SafeMoney {
   def getPrices: List[Price] = scrapePage(pageN, priceVals)
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(DlGamerScraper.storeHead + pageN.toString)
-      .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-      .get()
-    val searchResults = doc.getElementsByClass("box").toList
-
-    searchResults.map(f(_))
+    try {
+      val doc = Jsoup.connect(DlGamerScraper.storeHead + pageN.toString)
+        .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+        .get()
+      val searchResults = doc.getElementsByClass("box").toList
+      searchResults.map(f(_))
+    } catch {
+      case e =>
+        println(e)
+        List()
+    }
   }
 
   def gameVals(html: Element): Game = {
@@ -59,16 +66,9 @@ object DlGamerScraper {
 
   def reindex = {
     for (i <- (1 to finalPage).par) {
-      DlGamerScraper(i).getAll map { x =>
-        try {
-          GwithP.insertGame(x)
-          println("Inserting game")
-        } catch { case e => println(e) }
-        try {
-          GwithP.insertPrice(x)
-          println("Inserting PRICE")
-        } catch { case e => println(e) }
-      }
+      val D = DlGamerScraper(i).getAll
+      D flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
+      D flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
     }
   }
 

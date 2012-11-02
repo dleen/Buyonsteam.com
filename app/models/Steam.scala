@@ -1,22 +1,12 @@
 package models
 
-import play.api._
-import play.api.mvc._
-
-import akka.util.duration._
-import akka.util.Duration
-
-import play.api.libs.concurrent._
-
-import play.api.Play.current
-
-import play.libs.Akka
-
 import anorm._
 import java.util.Date
 import org.jsoup._
 import org.jsoup.nodes._
 import scala.collection.JavaConversions._
+import scala.util.control.Exception._
+import org.postgresql.util._
 
 case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
@@ -29,12 +19,17 @@ case class SteamScraper(pageN: Int = 1) extends Scraper with SafeMoney {
     GSwP(steamVals(html), GwithP(gameVals(html), priceVals(html)))
 
   def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    val doc = Jsoup.connect(SteamScraper.storeHead + pageN.toString)
-      .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-      .get()
-    val searchResults = doc.getElementsByClass("search_result_row").toList
-
-    searchResults.map(f(_))
+    try {
+      val doc = Jsoup.connect(SteamScraper.storeHead + pageN.toString)
+        .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+        .get()
+      val searchResults = doc.getElementsByClass("search_result_row").toList
+      searchResults.map(f(_))
+    } catch {
+      case e =>
+        println(e)
+        List()
+    }
   }
 
   def gameVals(html: Element): Game = {
@@ -91,20 +86,10 @@ object SteamScraper {
 
   def reindex = {
     for (i <- (1 to finalPage).par) {
-      SteamScraper(i).getAllSteam map { x =>
-        try {
-          GSwP.insertGame(x)
-          println("Inserting game")
-        } catch { case e => println(e) }
-        try {
-          GSwP.insertPrice(x)
-          println("Inserting PRICE")
-        } catch { case e => println(e) }
-        try {
-          GSwP.insertSteam(x)
-          println("Inserting steam values")
-        } catch { case e => println(e) }
-      }
+      val S = SteamScraper(i).getAllSteam
+      S flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertGame(x))
+      S flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertPrice(x))
+      S flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertSteam(x))
     }
   }
 

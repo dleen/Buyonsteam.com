@@ -5,6 +5,8 @@ import java.util.Date
 import org.jsoup._
 import org.jsoup.nodes._
 import scala.collection.JavaConversions._
+import scala.util.control.Exception._
+import org.postgresql.util._
 
 case class GameStopScraper(pageN: Int = 1) extends Scraper with SafeMoney {
 
@@ -20,7 +22,6 @@ case class GameStopScraper(pageN: Int = 1) extends Scraper with SafeMoney {
         .get()
       val searchResults = doc.getElementsByClass("product").toList
       searchResults.map(f(_))
-
     } catch {
       case e =>
         println(e)
@@ -66,16 +67,9 @@ object GameStopScraper {
 
   def reindex = {
     for (i <- (1 to finalPage).par) {
-      GameStopScraper(i).getAll map { x =>
-        try {
-          GwithP.insertGame(x)
-          println("Inserting game")
-        } catch { case e => println(e) }
-        try {
-          GwithP.insertPrice(x)
-          println("Inserting PRICE")
-        } catch { case e => println(e) }
-      }
+      val G = GameStopScraper(i).getAll
+      G flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
+      G flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
     }
   }
 

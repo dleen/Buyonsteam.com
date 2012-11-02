@@ -7,13 +7,8 @@ GET	/						controllers.Application.index
 
 GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
 
-GET	/reindexsteam			controllers.Application.reindexSteam
-GET	/reindexgamersgate		controllers.Application.reindexGamersGate
-GET	/reindexdlgamer			controllers.Application.reindexDlGamer
-GET	/reindexgamestop		controllers.Application.reindexGameStop
-GET	/reindexgreenman		controllers.Application.reindexGreenmanGaming
+GET	/reindex/:name			controllers.Application.reindexer(name: String)
 
-GET /grabprices				controllers.Application.grabprices
 GET /manmatch				controllers.Application.manualMatching
 GET /matchexact				controllers.Application.matchExact
 GET /matchsimilar			controllers.Application.matchSimilar
