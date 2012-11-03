@@ -1,31 +1,10 @@
 package models
 
-import anorm._
-import java.util.Date
-import org.jsoup._
-import org.jsoup.nodes._
-import scala.collection.JavaConversions._
+import akka.actor._
 
-abstract class Scraper {
+abstract class Scraper extends Actor
 
-  def getAll: List[GwithP]
-  def getGames: List[Game]
-  def getPrices: List[Price]
-
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A]
-
-  // Capture everything from html, useful for initializing, creating new games.
-  def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
-
-  // Capture the game values
-  def gameVals(html: Element): Game
-
-  // Capture the price values
-  def priceVals(html: Element): Price
-
-}
-
-trait SafeMoney {
+object Scraper {
 
   def rm$(s: String): Double = {
     if (s(0) == '$') s.tail.toDouble
@@ -50,3 +29,9 @@ trait SafeMoney {
   }
 
 }
+
+sealed trait ScrapedMessage
+case class FetchGame(pageN: Int) extends ScrapedMessage
+case class GameFetched(gl: List[GwithP]) extends ScrapedMessage
+case class GameFetchedS(gl: List[GSwP], pageN: Int) extends ScrapedMessage
+case object Scrape extends ScrapedMessage

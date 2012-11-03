@@ -10,7 +10,6 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.data.validation.Constraints._
 
-
 import scala.util.control.Exception._
 
 import play.api.libs.json.Json._
@@ -21,11 +20,31 @@ import play.api.Play.current
 import akka.util.Duration
 import akka.util.duration._
 
+import akka.actor._
+
 object Application extends Controller {
 
   /*
    * Testing code.
    */
+  val system = ActorSystem("ScaperSystem")
+  //val GSmaster = system.actorOf(Props(new GameStopMaster), name = "GSmaster")
+  val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
+  //val Dlmaster = system.actorOf(Props(new DlGamerMaster), name = "Dlmaster")
+  //val GGmaster = system.actorOf(Props(new GamersGateMaster), name = "GGmaster")
+  //val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
+
+  //GSmaster ! Scrape
+
+  Smaster ! Scrape
+
+  //Dlmaster ! Scrape
+
+  //GGmaster ! Scrape
+
+  //GMmaster ! Scrape
+
+  system.shutdown()
 
   def manualMatching = Action {
     Ok(html.manmatch(DataCleanup.matchManually))
@@ -44,13 +63,11 @@ object Application extends Controller {
     Ok(html.manmatch(DataCleanup.matchManually))
   }
 
-  def blacklist(id1: Int, id2: Int, list: List[Int]) = id1 :: id2 :: list
-
   /*
    * Real working code.
    */
 
-  def reindexer(store: String) = {
+  /*  def reindexer(store: String) = {
     Action {
       val promOfIndex: Promise[String] = Akka.future {
         val start: Long = System.currentTimeMillis
@@ -71,7 +88,7 @@ object Application extends Controller {
         }
       }
     }
-  }
+  }*/
 
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }
 

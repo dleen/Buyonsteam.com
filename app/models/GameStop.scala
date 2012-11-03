@@ -1,61 +1,33 @@
 package models
 
-import anorm._
+import anorm.NotAssigned
 import java.util.Date
+
 import org.jsoup._
 import org.jsoup.nodes._
 import scala.collection.JavaConversions._
+
 import scala.util.control.Exception._
 import org.postgresql.util._
 
-case class GameStopScraper(pageN: Int = 1) extends Scraper with SafeMoney {
+import akka.actor._
+import akka.util.duration._
+import akka.util.Duration
 
-  def getAll: List[GwithP] = scrapePage(pageN, allVals)
-  def getGames: List[Game] = scrapePage(pageN, gameVals)
-  def getPrices: List[Price] = scrapePage(pageN, priceVals)
+class GameStopScraper extends Scraper {
 
-  def scrapePage[A](pageN: Int, f: (Element) => A): List[A] = {
-    try {
-      val doc = Jsoup.connect(GameStopScraper.storeHead + ((pageN - 1) * 12).toString + GameStopScraper.storeTail)
-        .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-        .timeout(15000)
-        .get()
-      val searchResults = doc.getElementsByClass("product").toList
-      searchResults.map(f(_))
-    } catch {
-      case e =>
-        println(e)
-        List()
-    }
-
-  }
-
-  def gameVals(html: Element): Game = {
-    val name = html.getElementsByClass("product_info").select("h3").select("a").text
-    val gameUrl = "http://www.gamestop.com" +
-      html.getElementsByClass("product_info").select("h3").select("a").attr("href")
-    val imgUrl = "http://www.gamestop.com" +
-      html.getElementsByClass("grid_2").select("img").attr("src")
-
-    Game(NotAssigned, name, GameStopScraper.name, gameUrl, imgUrl)
-  }
-
-  def priceVals(html: Element): Price = {
-    val name = html.getElementsByClass("product_info").select("a").text
-    val priceS = $anitizer(html.getElementsByClass("pricing").text)
-    val onSale = !html.getElementsByClass("old_price").text.isEmpty
-
-    Price(NotAssigned, priceS, onSale, new Date(), 0)
+  def receive = {
+    case FetchGame(pageN) => sender ! GameStopScraper.getAll(pageN)
   }
 
 }
 
 object GameStopScraper {
 
-  val name = "GameStop"
+  private val name = "GameStop"
 
-  val storeHead = "http://www.gamestop.com/browse/pc?nav=2b"
-  val storeTail = ",138c-ffff2418"
+  private val storeHead = "http://www.gamestop.com/browse/pc?nav=2b"
+  private val storeTail = ",138c-ffff2418"
 
   val finalPage = {
     val doc = Jsoup.connect(storeHead + storeTail).get()
@@ -65,12 +37,64 @@ object GameStopScraper {
     navNumSep.toInt
   }
 
-  def reindex = {
-    for (i <- (1 to finalPage).par) {
-      val G = GameStopScraper(i).getAll
-      G flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
-      G flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
+  private def getAll(pageN: Int): GameFetched = {
+
+    val doc = Jsoup.connect(GameStopScraper.storeHead + ((pageN - 1) * 12).toString + GameStopScraper.storeTail)
+      .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+      .timeout(30000)
+      .get()
+
+    val searchResults = doc.getElementsByClass("product").toList
+
+    def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
+
+    def gameVals(html: Element): Game = {
+      val name = html.getElementsByClass("product_info").select("h3").select("a").text
+      val gameUrl = "http://www.gamestop.com" +
+        html.getElementsByClass("product_info").select("h3").select("a").attr("href")
+      val imgUrl = "http://www.gamestop.com" +
+        html.getElementsByClass("grid_2").select("img").attr("src")
+
+      Game(NotAssigned, name, GameStopScraper.name, gameUrl, imgUrl)
     }
+
+    def priceVals(html: Element): Price = {
+      val name = html.getElementsByClass("product_info").select("a").text
+      val priceS = Scraper.$anitizer(html.getElementsByClass("pricing").text)
+      val onSale = !html.getElementsByClass("old_price").text.isEmpty
+
+      Price(NotAssigned, priceS, onSale, new Date(), 0)
+    }
+
+    GameFetched(searchResults map (allVals))
+  }
+
+}
+
+class GameStopMaster extends Actor {
+
+  private val fetcher = context.actorOf(Props[GameStopScraper])
+
+  var nrOfResults: Int = _
+  val start: Long = System.currentTimeMillis
+
+  println(GameStopScraper.finalPage)
+
+  def receive = {
+    case Scrape => for (i <- 1 to GameStopScraper.finalPage) fetcher ! FetchGame(i)
+    case GameFetched(gl) => {
+      gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
+      gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
+
+      printf("GS:%d ".format(nrOfResults))
+      nrOfResults += 1
+
+      if (nrOfResults == GameStopScraper.finalPage) {
+        println("All done in: %s".format((System.currentTimeMillis - start).millis))
+        context.stop(self)
+      }
+    }
+    case e => println(e)
   }
 
 }
