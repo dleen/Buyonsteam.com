@@ -10,14 +10,16 @@ import scala.collection.JavaConversions._
 import scala.util.control.Exception._
 import org.postgresql.util._
 
-import akka.actor._
+import akka.actor.Actor
+import akka.actor.Props
 import akka.util.duration._
 import akka.util.Duration
 
 class SteamScraper extends Scraper {
 
   def receive = {
-    case FetchGame(pageN) => sender ! SteamScraper.getAllSteam(pageN)
+    case FetchGame(pageN) => { sender ! SteamScraper.getAllSteam(pageN)
+    println("received") }
   }
 
 }
@@ -91,7 +93,7 @@ object SteamScraper {
 
 class SteamMaster extends Actor {
 
-  private val fetcher = context.actorOf(Props[SteamScraper])
+  val fetcher = context.actorOf(Props[SteamScraper])
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis

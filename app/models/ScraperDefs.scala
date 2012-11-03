@@ -1,6 +1,6 @@
 package models
 
-import akka.actor._
+import akka.actor.Actor
 
 abstract class Scraper extends Actor
 

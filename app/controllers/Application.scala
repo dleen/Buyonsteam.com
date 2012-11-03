@@ -6,20 +6,10 @@ import models._
 import play.api._
 import play.api.mvc._
 
-import play.api.data._
-import play.api.data.Forms._
-import play.api.data.validation.Constraints._
-
-import scala.util.control.Exception._
-
 import play.api.libs.json.Json._
-
-import play.api.libs.concurrent._
-import play.api.Play.current
 
 import akka.util.Duration
 import akka.util.duration._
-
 import akka.actor._
 
 object Application extends Controller {
@@ -27,16 +17,16 @@ object Application extends Controller {
   /*
    * Testing code.
    */
-  val system = ActorSystem("ScaperSystem")
-  //val GSmaster = system.actorOf(Props(new GameStopMaster), name = "GSmaster")
-  val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
+  val system = ActorSystem("ScraperSystem")
+  val GSmaster = system.actorOf(Props(new GameStopMaster), name = "GSmaster")
+  //val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
   //val Dlmaster = system.actorOf(Props(new DlGamerMaster), name = "Dlmaster")
   //val GGmaster = system.actorOf(Props(new GamersGateMaster), name = "GGmaster")
   //val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
 
-  //GSmaster ! Scrape
+  GSmaster ! Scrape
 
-  Smaster ! Scrape
+  //Smaster ! Scrape
 
   //Dlmaster ! Scrape
 
