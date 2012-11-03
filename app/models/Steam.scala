@@ -18,8 +18,7 @@ import akka.util.Duration
 class SteamScraper extends Scraper {
 
   def receive = {
-    case FetchGame(pageN) => { sender ! SteamScraper.getAllSteam(pageN)
-    println("received") }
+    case FetchGame(pageN) => sender ! SteamScraper.getAllSteam(pageN)
   }
 
 }

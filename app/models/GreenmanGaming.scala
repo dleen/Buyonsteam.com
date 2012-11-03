@@ -86,11 +86,14 @@ class GreenmanGamingMaster extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == GreenmanGamingScraper.finalPage) {
-        println("All done in: %s".format((System.currentTimeMillis - start).millis))
+        printf("GM done in: %s ".format((System.currentTimeMillis - start).millis))
         context.stop(self)
       }
     }
-    case e: Exception => println(e)
+    case e => {
+      println("Printing the error:")
+      println(e)
+    }
   }
 
 }

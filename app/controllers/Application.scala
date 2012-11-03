@@ -8,8 +8,6 @@ import play.api.mvc._
 
 import play.api.libs.json.Json._
 
-import akka.util.Duration
-import akka.util.duration._
 import akka.actor._
 
 object Application extends Controller {
@@ -17,24 +15,25 @@ object Application extends Controller {
   /*
    * Testing code.
    */
-  val system = ActorSystem("ScraperSystem")
+ /* val system = ActorSystem("ScraperSystem")
+
+  val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
   val GSmaster = system.actorOf(Props(new GameStopMaster), name = "GSmaster")
-  //val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
-  //val Dlmaster = system.actorOf(Props(new DlGamerMaster), name = "Dlmaster")
-  //val GGmaster = system.actorOf(Props(new GamersGateMaster), name = "GGmaster")
-  //val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
+  val Dlmaster = system.actorOf(Props(new DlGamerMaster), name = "Dlmaster")
+  val GGmaster = system.actorOf(Props(new GamersGateMaster), name = "GGmaster")
+  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
 
   GSmaster ! Scrape
 
-  //Smaster ! Scrape
+  Dlmaster ! Scrape
 
-  //Dlmaster ! Scrape
+  GGmaster ! Scrape
 
-  //GGmaster ! Scrape
+  Smaster ! Scrape
+  
+  GMmaster ! Scrape */
 
-  //GMmaster ! Scrape
-
-  system.shutdown()
+  //system.shutdown()
 
   def manualMatching = Action {
     Ok(html.manmatch(DataCleanup.matchManually))

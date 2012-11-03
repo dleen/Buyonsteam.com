@@ -93,7 +93,10 @@ class GamersGateMaster extends Actor {
         context.stop(self)
       }
     }
-    case e => println(e)
+    case e => {
+      println("Printing the error:")
+      println(e)
+    }
   }
 
 }

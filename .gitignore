@@ -31,10 +31,7 @@ documentation/api
 /bin
 .settings
 .worksheet/*
-.worksheet/src/controllers.forTestPurposes.scala
-
-.worksheet/bin/controllers/forTestPurposes$.class
-
-.worksheet/bin/controllers/forTestPurposes$$anonfun$main$1.class
-
+.worksheet/src/*
+.worksheet/bin/*
 app/controllers/forTestPurposes.sc
+.gitattributes
