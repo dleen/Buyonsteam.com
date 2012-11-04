@@ -29,7 +29,7 @@ create table price_history (
 	on_sale			boolean not null,
 	date_recorded	date not null,
 	game_id			int not null references scraped_games (id),
-	unique (date_recorded, game_id)
+	unique (date_recorded, price_on_x, game_id)
 );
 
 create index on scraped_games (name);

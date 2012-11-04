@@ -13,6 +13,7 @@ import org.postgresql.util._
 import akka.actor._
 import akka.util.duration._
 import akka.util.Duration
+import akka.routing.RoundRobinRouter
 
 class DlGamerScraper extends Scraper {
 
@@ -26,8 +27,7 @@ object DlGamerScraper {
 
   private val name = "DlGamer"
 
-  private val storeHead =
-    "http://www.dlgamer.us/download-pc_games-c-27.html?page="
+  private val storeHead = "http://www.dlgamer.us/download-pc_games-c-27.html?page="
 
   // Fix this
   def getFinalPage(storeTail: String = "1"): Int = {
@@ -41,14 +41,12 @@ object DlGamerScraper {
   // lol solution
   val finalPage = 40
 
-  private def getAll(pageN: Int): GameFetched = {
+  private def getAll(pageN: Int): GameFetchedG = {
 
-    val doc = Jsoup.connect(DlGamerScraper.storeHead + pageN.toString)
+    val url = DlGamerScraper.storeHead + pageN.toString
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-      .timeout(30000)
-      .get()
-
-    val searchResults = doc.getElementsByClass("box").toList
+      .timeout(3000).execute()
 
     def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
 
@@ -68,14 +66,21 @@ object DlGamerScraper {
       Price(NotAssigned, priceS, onSale, new Date(), 0)
     }
 
-    GameFetched(searchResults map (allVals))
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
+
+    if (!doc.body.hasText) GameFetchedG(List(), pageN, false)
+    else {
+      val searchResults = doc.getElementsByClass("box").toList
+      GameFetchedG(searchResults map (allVals), pageN, true)
+
+    }
   }
 
 }
 
-class DlGamerMaster extends Actor {
+class DlGamerMaster(listener: ActorRef) extends Actor {
 
-  private val fetcher = context.actorOf(Props[DlGamerScraper])
+  private val Dlfetcher = context.actorOf(Props[DlGamerScraper].withRouter(RoundRobinRouter(4)), name = "Dlfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
@@ -83,8 +88,8 @@ class DlGamerMaster extends Actor {
   println(DlGamerScraper.finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to DlGamerScraper.finalPage) fetcher ! FetchGame(i)
-    case GameFetched(gl) => {
+    case Scrape => for (i <- 1 to DlGamerScraper.finalPage) Dlfetcher ! FetchGame(i)
+    case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
@@ -92,7 +97,20 @@ class DlGamerMaster extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == DlGamerScraper.finalPage) {
-        println("All done in: %s".format((System.currentTimeMillis - start).millis))
+        println("Dl done in: %s".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("DlGamer", (System.currentTimeMillis - start).millis)
+        context.stop(self)
+      }
+    }
+    case GameFetchedG(List(), pageN, false) => {
+      println("Problem on Dl page: " + pageN.toString)
+      nrOfResults += 1
+
+      if (nrOfResults == DlGamerScraper.finalPage) {
+        printf("Dl done in: %s ".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("DlGamer", (System.currentTimeMillis - start).millis)
         context.stop(self)
       }
     }

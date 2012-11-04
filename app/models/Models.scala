@@ -259,7 +259,7 @@ object DataCleanup {
     	where n1.unq_game_id < n2.unq_game_id
     	order by n1.unq_game_id)
     	update scraped_games set unq_game_id = a from pairs where unq_game_id = b  
-        """).execute()
+        """).executeUpdate()
     }
   }
 
@@ -267,7 +267,6 @@ object DataCleanup {
     DB.withConnection { implicit connection =>
       SQL(
         """
-        select set_limit(1);
     	with matched(a, b, c) as (
     	SELECT similarity(n1.name, n2.name), n1.unq_game_id, n2.unq_game_id
     	FROM   scraped_games n1
@@ -275,8 +274,8 @@ object DataCleanup {
     	AND lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3))
     	AND lower(n1.name) % lower(n2.name)
     	where n1.unq_game_id < n2.unq_game_id)
-    	update scraped_games set unq_game_id = b from matched where unq_game_id = c
-        """).execute()
+    	update scraped_games set unq_game_id = b from matched where unq_game_id = c and a = 1
+        """).executeUpdate()
     }
   }
 

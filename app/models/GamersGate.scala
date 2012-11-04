@@ -13,6 +13,7 @@ import org.postgresql.util._
 import akka.actor._
 import akka.util.duration._
 import akka.util.Duration
+import akka.routing.RoundRobinRouter
 
 class GamersGateScraper extends Scraper {
 
@@ -30,19 +31,27 @@ object GamersGateScraper {
     "http://www.gamersgate.com/games?filter=available&pg="
 
   val finalPage = {
-    val doc = Jsoup.connect(storeHead + "1").get()
-    val navNumStr = doc.getElementsByClass("paginator").select("a").text
-    val navNumSep = navNumStr.split(' ').toList
+    val url = storeHead + "1"
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
+      .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+      .timeout(3000).execute()
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
 
-    navNumSep map { _.toInt } max
+    if (!doc.body.hasText) 1
+    else {
+      val navNumStr = doc.getElementsByClass("paginator").select("a").text
+      val navNumSep = navNumStr.split(' ').toList
+
+      navNumSep map { _.toInt } max
+    }
   }
 
-  private def getAll(pageN: Int): GameFetched = {
+  private def getAll(pageN: Int): GameFetchedG = {
 
-    val doc = Jsoup.connect(GamersGateScraper.storeHead + pageN.toString)
+    val url = GamersGateScraper.storeHead + pageN.toString
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-      .get()
-    val searchResults = doc.getElementsByClass("product_display").toList
+      .timeout(3000).execute()
 
     def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
 
@@ -65,14 +74,20 @@ object GamersGateScraper {
       Price(NotAssigned, priceS, onSale, new Date(), 0)
     }
 
-    GameFetched(searchResults map (allVals))
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
+
+    if (!doc.body.hasText) GameFetchedG(List(), pageN, false)
+    else {
+      val searchResults = doc.getElementsByClass("product_display").toList
+      GameFetchedG(searchResults map (allVals), pageN, true)
+    }
   }
 
 }
 
-class GamersGateMaster extends Actor {
+class GamersGateMaster(listener: ActorRef) extends Actor {
 
-  private val fetcher = context.actorOf(Props[GamersGateScraper])
+  private val GGfetcher = context.actorOf(Props[GamersGateScraper].withRouter(RoundRobinRouter(4)), name = "GGfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
@@ -80,8 +95,8 @@ class GamersGateMaster extends Actor {
   println(GamersGateScraper.finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to GamersGateScraper.finalPage) fetcher ! FetchGame(i)
-    case GameFetched(gl) => {
+    case Scrape => for (i <- 1 to GamersGateScraper.finalPage) GGfetcher ! FetchGame(i)
+    case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
@@ -90,6 +105,19 @@ class GamersGateMaster extends Actor {
 
       if (nrOfResults == GamersGateScraper.finalPage) {
         println("All done in: %s".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("GamersGate", (System.currentTimeMillis - start).millis)
+        context.stop(self)
+      }
+    }
+    case GameFetchedG(List(), pageN, false) => {
+      println("Problem on GG page: " + pageN.toString)
+      nrOfResults += 1
+
+      if (nrOfResults == GamersGateScraper.finalPage) {
+        printf("GG done in: %s ".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("GamersGate", (System.currentTimeMillis - start).millis)
         context.stop(self)
       }
     }

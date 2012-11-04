@@ -22,27 +22,32 @@ object Application extends Controller {
   /*
    * Testing code.
    */
-  val system = ActorSystem("ScraperSystem")
 
-  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
+  def scrapeEverything = {
 
-  /*  val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
-  val GSmaster = system.actorOf(Props(new GameStopMaster), name = "GSmaster")
-  val Dlmaster = system.actorOf(Props(new DlGamerMaster), name = "Dlmaster")
-  val GGmaster = system.actorOf(Props(new GamersGateMaster), name = "GGmaster")
+    val system = ActorSystem("ScraperSystem")
 
-  GSmaster ! Scrape
+    val listener = system.actorOf(Props[Listener], name = "listener")
 
-  Dlmaster ! Scrape
+    val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
+    val GSmaster = system.actorOf(Props(new GameStopMaster(listener)), name = "GSmaster")
+    val Dlmaster = system.actorOf(Props(new DlGamerMaster(listener)), name = "Dlmaster")
+    val GGmaster = system.actorOf(Props(new GamersGateMaster(listener)), name = "GGmaster")
+    val Stmaster = system.actorOf(Props(new SteamMaster(listener)), name = "Stmaster")
 
-  GGmaster ! Scrape
+    GSmaster ! Scrape
 
-  Smaster ! Scrape */
+    Dlmaster ! Scrape
 
-  GMmaster ! Scrape
+    GGmaster ! Scrape
 
-  //system.shutdown()
+    Stmaster ! Scrape
 
+    GMmaster ! Scrape
+
+  }
+
+  //scrapeEverything
 
   def manualMatching = Action {
     Ok(html.manmatch(DataCleanup.matchManually))
@@ -64,29 +69,6 @@ object Application extends Controller {
   /*
    * Real working code.
    */
-
-  /*  def reindexer(store: String) = {
-    Action {
-      val promOfIndex: Promise[String] = Akka.future {
-        val start: Long = System.currentTimeMillis
-        store match {
-          case "steam" => SteamScraper.reindex
-          case "greenman" => GreenmanGamingScraper.reindex
-          case "gamestop" => GameStopScraper.reindex
-          case "dlgamer" => DlGamerScraper.reindex
-          case "gamersgate" => GamersGateScraper.reindex
-        }
-        store + " finished updating the database in: " + (System.currentTimeMillis - start).millis.toString
-      }
-      Async {
-        promOfIndex.orTimeout("Oops", 300000).map { eitherIndorTimeout =>
-          eitherIndorTimeout.fold(
-            timeout => InternalServerError(timeout),
-            i => Ok("All " + i))
-        }
-      }
-    }
-  }*/
 
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }
 

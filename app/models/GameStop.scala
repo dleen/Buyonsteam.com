@@ -13,6 +13,7 @@ import org.postgresql.util._
 import akka.actor._
 import akka.util.duration._
 import akka.util.Duration
+import akka.routing.RoundRobinRouter
 
 class GameStopScraper extends Scraper {
 
@@ -30,21 +31,28 @@ object GameStopScraper {
   private val storeTail = ",138c-ffff2418"
 
   val finalPage = {
-    val doc = Jsoup.connect(storeHead + storeTail).get()
-    val navNumStr = doc.getElementsByClass("pagination_controls").select("strong").text
-    val navNumSep = navNumStr.split(' ').toList.last.drop(1)
+    val url = storeHead + storeTail
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
+      .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+      .timeout(3000).execute()
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
 
-    navNumSep.toInt
+    if (!doc.body.hasText) 1
+    else {
+      val navNumStr = doc.getElementsByClass("pagination_controls").select("strong").text
+      val navNumSep = navNumStr.split(' ').toList.last.drop(1)
+
+      navNumSep.toInt
+    }
+
   }
 
-  private def getAll(pageN: Int): GameFetched = {
+  private def getAll(pageN: Int): GameFetchedG = {
 
-    val doc = Jsoup.connect(GameStopScraper.storeHead + ((pageN - 1) * 12).toString + GameStopScraper.storeTail)
+    val url = GameStopScraper.storeHead + ((pageN - 1) * 12).toString + GameStopScraper.storeTail
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-      .timeout(30000)
-      .get()
-
-    val searchResults = doc.getElementsByClass("product").toList
+      .timeout(3000).execute()
 
     def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
 
@@ -66,14 +74,19 @@ object GameStopScraper {
       Price(NotAssigned, priceS, onSale, new Date(), 0)
     }
 
-    GameFetched(searchResults map (allVals))
-  }
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
 
+    if (!doc.body.hasText) GameFetchedG(List(), pageN, false)
+    else {
+      val searchResults = doc.getElementsByClass("product").toList
+      GameFetchedG(searchResults map (allVals), pageN, true)
+    }
+  }
 }
 
-class GameStopMaster extends Actor {
+class GameStopMaster(listener: ActorRef) extends Actor {
 
-  private val fetcher = context.actorOf(Props[GameStopScraper])
+  private val GSfetcher = context.actorOf(Props[GameStopScraper].withRouter(RoundRobinRouter(4)), name = "GSfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
@@ -81,8 +94,8 @@ class GameStopMaster extends Actor {
   println(GameStopScraper.finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to GameStopScraper.finalPage) fetcher ! FetchGame(i)
-    case GameFetched(gl) => {
+    case Scrape => for (i <- 1 to GameStopScraper.finalPage) GSfetcher ! FetchGame(i)
+    case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
@@ -90,7 +103,20 @@ class GameStopMaster extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == GameStopScraper.finalPage) {
-        println("All done in: %s".format((System.currentTimeMillis - start).millis))
+        println("GS done in: %s".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("GameStop", (System.currentTimeMillis - start).millis)
+        context.stop(self)
+      }
+    }
+    case GameFetchedG(List(), pageN, false) => {
+      println("Problem on GS page: " + pageN.toString)
+      nrOfResults += 1
+
+      if (nrOfResults == GameStopScraper.finalPage) {
+        printf("GS done in: %s ".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("GameStop", (System.currentTimeMillis - start).millis)
         context.stop(self)
       }
     }

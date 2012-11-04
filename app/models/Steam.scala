@@ -10,10 +10,10 @@ import scala.collection.JavaConversions._
 import scala.util.control.Exception._
 import org.postgresql.util._
 
-import akka.actor.Actor
-import akka.actor.Props
+import akka.actor._
 import akka.util.duration._
 import akka.util.Duration
+import akka.routing.RoundRobinRouter
 
 class SteamScraper extends Scraper {
 
@@ -40,21 +40,27 @@ object SteamScraper {
     "http://store.steampowered.com/search/results?&cc=us&category1=998&page="
 
   val finalPage = {
-    val doc = Jsoup.connect(storeHead + "1").get()
-    val navNumStr = doc.getElementsByClass("search_pagination_right").select("a").text
-    val navNumSep = navNumStr.split(' ')
+    val url = storeHead + "1"
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
+      .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+      .timeout(3000).execute()
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
 
-    navNumSep(2).toInt
+    if (!doc.body.hasText) 1
+    else {
+      val navNumStr = doc.getElementsByClass("search_pagination_right").select("a").text
+      val navNumSep = navNumStr.split(' ')
+
+      navNumSep(2).toInt
+    }
   }
 
   private def getAllSteam(pageN: Int): GameFetchedS = {
 
-    val doc = Jsoup.connect(SteamScraper.storeHead + pageN.toString)
+    val url = SteamScraper.storeHead + pageN.toString
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-      .timeout(30000)
-      .get()
-
-    val searchResults = doc.getElementsByClass("search_result_row").toList
+      .timeout(3000).execute()
 
     def steamAllVals(html: Element): GSwP = GSwP(steamVals(html), allVals(html))
     def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
@@ -85,14 +91,20 @@ object SteamScraper {
       SteamGame(gameId, name, releaseDate, meta, 0)
     }
 
-    GameFetchedS(searchResults map (steamAllVals), pageN)
+    val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
+
+    if (!doc.body.hasText) GameFetchedS(List(), pageN, false)
+    else {
+      val searchResults = doc.getElementsByClass("search_result_row").toList
+      GameFetchedS(searchResults map (steamAllVals), pageN, true)
+    }
   }
 
 }
 
-class SteamMaster extends Actor {
+class SteamMaster(listener: ActorRef) extends Actor {
 
-  val fetcher = context.actorOf(Props[SteamScraper])
+  private val Stfetcher = context.actorOf(Props[SteamScraper].withRouter(RoundRobinRouter(4)), name = "Stfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
@@ -100,17 +112,30 @@ class SteamMaster extends Actor {
   println(SteamScraper.finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to SteamScraper.finalPage) fetcher ! FetchGame(i)
-    case GameFetchedS(gl, pageN) => {
+    case Scrape => for (i <- 1 to SteamScraper.finalPage) Stfetcher ! FetchGame(i)
+    case GameFetchedS(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertPrice(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertSteam(x))
 
-      printf("S:%d ".format(nrOfResults))
+      printf("St:%d ".format(nrOfResults))
       nrOfResults += 1
 
       if (nrOfResults == SteamScraper.finalPage) {
-        println("All done in: %s\n".format((System.currentTimeMillis - start).millis))
+        println("St done in: %s ".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("Steam", (System.currentTimeMillis - start).millis)
+        context.stop(self)
+      }
+    }
+    case GameFetchedS(List(), pageN, false) => {
+      println("Problem on St page: " + pageN.toString)
+      nrOfResults += 1
+
+      if (nrOfResults == SteamScraper.finalPage) {
+        printf("St done in: %s ".format((System.currentTimeMillis - start).millis))
+
+        listener ! Finished("Steam", (System.currentTimeMillis - start).millis)
         context.stop(self)
       }
     }
