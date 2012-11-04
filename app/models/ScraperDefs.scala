@@ -32,6 +32,7 @@ object Scraper {
 
 sealed trait ScrapedMessage
 case class FetchGame(pageN: Int) extends ScrapedMessage
+case class GameFetchedG(gl: List[GwithP], pageN: Int, success: Boolean) extends ScrapedMessage
 case class GameFetched(gl: List[GwithP]) extends ScrapedMessage
 case class GameFetchedS(gl: List[GSwP], pageN: Int) extends ScrapedMessage
 case object Scrape extends ScrapedMessage

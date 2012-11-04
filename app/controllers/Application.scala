@@ -1,5 +1,7 @@
 package controllers
 
+import anorm.NotAssigned
+
 import views._
 import models._
 
@@ -10,18 +12,24 @@ import play.api.libs.json.Json._
 
 import akka.actor._
 
+import org.jsoup._
+import org.jsoup.nodes._
+import scala.util.control.Exception._
+import scala.collection.JavaConversions._
+
 object Application extends Controller {
 
   /*
    * Testing code.
    */
- /* val system = ActorSystem("ScraperSystem")
+  val system = ActorSystem("ScraperSystem")
 
-  val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
+  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
+
+  /*  val Smaster = system.actorOf(Props(new SteamMaster), name = "Smaster")
   val GSmaster = system.actorOf(Props(new GameStopMaster), name = "GSmaster")
   val Dlmaster = system.actorOf(Props(new DlGamerMaster), name = "Dlmaster")
   val GGmaster = system.actorOf(Props(new GamersGateMaster), name = "GGmaster")
-  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster), name = "GMmaster")
 
   GSmaster ! Scrape
 
@@ -29,11 +37,12 @@ object Application extends Controller {
 
   GGmaster ! Scrape
 
-  Smaster ! Scrape
-  
-  GMmaster ! Scrape */
+  Smaster ! Scrape */
+
+  GMmaster ! Scrape
 
   //system.shutdown()
+
 
   def manualMatching = Action {
     Ok(html.manmatch(DataCleanup.matchManually))
