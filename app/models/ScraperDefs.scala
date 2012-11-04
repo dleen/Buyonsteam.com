@@ -70,9 +70,9 @@ class Listener extends Actor {
     totalTime += duration
     println("RESULTS:" + nrOfResults.toString)
     if (nrOfResults == 5) {
-      println("ALL DONE")
-      println("ALL DONE")
-      println("ALL DONE")
+      println("****** ALL DONE ******")
+      println("TOTAL TIME TAKEN: " + totalTime.toString)
+      println("****** ALL DONE ******")
       context.system.shutdown()
     }
   }

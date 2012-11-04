@@ -7,7 +7,7 @@ GET	/						controllers.Application.index
 
 GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
 
-#GET	/reindex/:name			controllers.Application.reindexer(name: String)
+GET	/reindex				controllers.Application.reindex
 
 GET /manmatch				controllers.Application.manualMatching
 GET /matchexact				controllers.Application.matchExact

@@ -1,7 +1,5 @@
 package controllers
 
-import anorm.NotAssigned
-
 import views._
 import models._
 
@@ -11,11 +9,6 @@ import play.api.mvc._
 import play.api.libs.json.Json._
 
 import akka.actor._
-
-import org.jsoup._
-import org.jsoup.nodes._
-import scala.util.control.Exception._
-import scala.collection.JavaConversions._
 
 object Application extends Controller {
 
@@ -47,7 +40,14 @@ object Application extends Controller {
 
   }
 
-  //scrapeEverything
+  def reindex = {
+    scrapeEverything
+    index
+  }
+
+  /*
+   * Real working code.
+   */
 
   def manualMatching = Action {
     Ok(html.manmatch(DataCleanup.matchManually))
@@ -65,10 +65,6 @@ object Application extends Controller {
     DataCleanup.equateIds(id1, id2)
     Ok(html.manmatch(DataCleanup.matchManually))
   }
-
-  /*
-   * Real working code.
-   */
 
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }
 
