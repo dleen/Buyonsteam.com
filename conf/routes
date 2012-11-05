@@ -6,6 +6,7 @@
 GET	/						controllers.Application.index
 
 GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
+GET /games1					controllers.Application.games
 
 GET	/reindex				controllers.Application.reindex
 

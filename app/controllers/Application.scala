@@ -78,5 +78,7 @@ object Application extends Controller {
 
   val Home = Redirect(routes.Application.list(0, 2, ""))
   def index = Action { Home }
+  
+  def games = Action { Ok(html.game()) }
 
 }
