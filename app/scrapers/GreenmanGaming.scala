@@ -1,19 +1,27 @@
-package models
+package scrapers
 
-import anorm.NotAssigned
+import java.lang.ExceptionInInitializerError
+import java.net.SocketTimeoutException
 import java.util.Date
 
-import org.jsoup._
-import org.jsoup.nodes._
-import scala.collection.JavaConversions._
+import scala.Option.option2Iterable
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.util.control.Exception.catching
 
-import scala.util.control.Exception._
-import org.postgresql.util._
+import org.jsoup.HttpStatusException
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import org.postgresql.util.PSQLException
 
-import akka.actor._
-import akka.util.duration._
-import akka.util.Duration
+import akka.actor.Actor
+import akka.actor.ActorRef
+import akka.actor.Props
+import akka.actor.actorRef2Scala
 import akka.routing.RoundRobinRouter
+import akka.util.duration.longToDurationLong
+import anorm.NotAssigned
+
+import models._
 
 class GreenmanGamingScraper extends Scraper {
 

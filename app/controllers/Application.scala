@@ -1,14 +1,16 @@
 package controllers
 
-import views._
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+import akka.util.duration.intToDurationInt
+import play.api.libs.json.Json.toJson
+import play.api.mvc.Action
+import play.api.mvc.Controller
+
+import scrapers._
 import models._
-
-import play.api._
-import play.api.mvc._
-
-import play.api.libs.json.Json._
-
-import akka.actor._
+import views._
 
 object Application extends Controller {
 
@@ -29,13 +31,9 @@ object Application extends Controller {
     val Stmaster = system.actorOf(Props(new SteamMaster(listener)), name = "Stmaster")
 
     GSmaster ! Scrape
-
     Dlmaster ! Scrape
-
     GGmaster ! Scrape
-
     Stmaster ! Scrape
-
     GMmaster ! Scrape
 
   }
@@ -44,6 +42,8 @@ object Application extends Controller {
     scrapeEverything
     index
   }
+
+  //ActorSystem("foo").scheduler.schedule(10.seconds, 10.seconds)(test)
 
   /*
    * Real working code.

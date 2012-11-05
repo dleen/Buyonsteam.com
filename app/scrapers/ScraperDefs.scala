@@ -1,10 +1,15 @@
-package models
+package scrapers
 
-import akka.actor._
-import akka.util.duration._
+import scala.util.control.Exception.catching
+
+import org.jsoup.HttpStatusException
+import org.jsoup.Jsoup
+
+import akka.actor.Actor
 import akka.util.Duration
-import scala.util.control.Exception._
-import org.jsoup._
+import akka.util.duration.intToDurationInt
+
+import models._
 
 abstract class Scraper extends Actor
 
