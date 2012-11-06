@@ -37,13 +37,13 @@ object DlGamerScraper {
   private val storeHead = "http://www.dlgamer.us/download-pc_games-c-27.html?page="
 
   // Fix this
-  def getFinalPage(storeTail: String = "1"): Int = {
+  /*def getFinalPage(storeTail: String = "1"): Int = {
     val doc = Jsoup.connect(storeHead + storeTail).get()
     val paginator = doc.getElementsByClass("numberpage").select("a").toList
     val last = paginator.last.text
     if (last == storeTail) storeTail.toInt
     else getFinalPage(last)
-  }
+  }*/
 
   // lol solution
   val finalPage = 40
