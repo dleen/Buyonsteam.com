@@ -1,5 +1,6 @@
 package scrapers
 
+import java.lang.ExceptionInInitializerError
 import java.net.SocketTimeoutException
 import java.util.Date
 
