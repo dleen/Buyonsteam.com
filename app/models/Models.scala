@@ -318,3 +318,22 @@ object DataCleanup {
 
 }
 
+object HelperFunctions {
+
+  val withSteamPrice = Game.simple ~ SteamGame.simple ~ Price.simple map {
+    case game ~ steam ~ price => (game, steam, price)
+  }
+
+  def recommendGames = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+        select * from (select * from scraped_games 
+        left join steam_games on scraped_games.id = steam_games.game_id order by steam_games.meta_critic desc) as games 
+    	left join price_history on games.game_id = price_history.game_id
+    	where price_history.on_sale = true
+    	limit 5
+        """).as(withSteamPrice *)
+    }
+  }
+
+}
