@@ -17,6 +17,8 @@ object Application extends Controller {
   /*
    * Testing code.
    */
+  
+  def maintemp = Action { Ok(html.maintemp()) }
 
   def scrapeEverything = {
 
