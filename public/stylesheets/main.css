@@ -98,10 +98,15 @@ img.desaturate:hover { filter: grayscale(0);
 }
 
 #my-hero h1 {
-  text-align: center;
-  margin-bottom: 20px;
+  text-align: left;
+  margin-bottom: 0px;
+  margin-left: 0px;
   margin-top: 20px;
   font-size: 50px;
   line-height: 1;
   letter-spacing: -1px;
+}
+
+#small-search {
+  margin-left: 0px;
 }

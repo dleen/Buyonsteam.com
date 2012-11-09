@@ -19,12 +19,14 @@ object Application extends Controller {
    */
 
   val recGames = HelperFunctions.recommendGamesA
-  //val storePrices = Game.storePrice(name)
 
-  def maintemp = Action { Ok(html.maintemp(recGames)) }
-  def gametemp(name: String) = Action { implicit request =>
-    Ok(html.gametemp(Game.storePrice(name = (name))))
+  def main = Action { Ok(html.main(recGames)) }
+  
+  def gameP(name: String) = Action { implicit request =>
+    Ok(html.game(Game.storePrice(name = (name))))
   }
+  
+  def gameQ(name: String) = Action { gameP(name) }
 
   def scrapeEverything = {
 
@@ -48,7 +50,7 @@ object Application extends Controller {
 
   def reindex = {
     scrapeEverything
-    index
+    main
   }
 
   //ActorSystem("foo").scheduler.schedule(10.seconds, 10.seconds)(test)
@@ -75,18 +77,5 @@ object Application extends Controller {
   }
 
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }
-
-  def qlist(name: String) = Action {
-    list(0, 2, name)
-  }
-
-  def list(page: Int, orderBy: Int, filter: String) = Action { implicit request =>
-    Ok(html.list(Game.list(page = page, orderBy = orderBy, filter = (filter)), orderBy, filter))
-  }
-
-  val Home = Redirect(routes.Application.list(0, 2, ""))
-  def index = Action { Home }
-
-  def games = Action { Ok(html.game()) }
 
 }

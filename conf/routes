@@ -3,12 +3,9 @@
 # ~~~~
 
 # Home page
-GET	/						controllers.Application.index
+GET	/						controllers.Application.main
 
-GET	/games					controllers.Application.list(p:Int ?= 0, s:Int ?= 2, f ?= "")
-GET /games1					controllers.Application.games
-GET /temp					controllers.Application.maintemp
-GET /gametemp				controllers.Application.gametemp(g ?= "")
+GET /game					controllers.Application.gameP(g ?= "")
 
 GET	/reindex				controllers.Application.reindex
 
@@ -18,7 +15,7 @@ GET /matchsimilar			controllers.Application.matchSimilar
 
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
 
-GET	/:name					controllers.Application.qlist(name: String)
+GET	/:name					controllers.Application.gameQ(name: String)
 
 POST /matchem				controllers.Application.matchem(id1: Int, id2: Int)
 
