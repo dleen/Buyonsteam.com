@@ -17,8 +17,14 @@ object Application extends Controller {
   /*
    * Testing code.
    */
-  
-  def maintemp = Action { Ok(html.maintemp()) }
+
+  val recGames = HelperFunctions.recommendGamesA
+  //val storePrices = Game.storePrice(name)
+
+  def maintemp = Action { Ok(html.maintemp(recGames)) }
+  def gametemp(name: String) = Action { implicit request =>
+    Ok(html.gametemp(Game.storePrice(name = (name))))
+  }
 
   def scrapeEverything = {
 
@@ -80,7 +86,7 @@ object Application extends Controller {
 
   val Home = Redirect(routes.Application.list(0, 2, ""))
   def index = Action { Home }
-  
+
   def games = Action { Ok(html.game()) }
 
 }

@@ -118,6 +118,19 @@ object Game {
 
     }
   }
+  
+  def storePrice(name: String) = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+    		  select * from scraped_games
+    		  left join price_history on price_history.game_id = scraped_games.id
+    		  where scraped_games.unq_game_id =
+    		  (select distinct on (unq_game_id) unq_game_id from scraped_games where name = {name})
+    		  and price_history.date_recorded = 'today'
+          """).on('name -> name).as(withPrice *)
+      
+    }
+  }
 
   // Retrieve a game by id
   def findById(id: Long): Option[Game] = {
@@ -320,18 +333,20 @@ object DataCleanup {
 
 object HelperFunctions {
 
-  val withSteamPrice = Game.simple ~ SteamGame.simple ~ Price.simple map {
+  val withSteamPrice = Game.simple ~ (SteamGame.simple ?) ~ Price.simple map {
     case game ~ steam ~ price => (game, steam, price)
   }
 
-  def recommendGames = {
+  def recommendGamesA = {
     DB.withConnection { implicit connection =>
       SQL("""
-        select * from (select * from scraped_games 
-        left join steam_games on scraped_games.id = steam_games.game_id order by steam_games.meta_critic desc) as games 
-    	left join price_history on games.game_id = price_history.game_id
-    	where price_history.on_sale = true
-    	limit 5
+    	  select * from (
+    	  select distinct on (unq_game_id) * from scraped_games order by unq_game_id) as unqg
+    	  left join price_history on unqg.id = price_history.game_id
+    	  left join steam_games on unqg.id = steam_games.game_id
+    	  where (price_history.on_sale = true AND price_history.date_recorded = 'today' AND unqg.store = 'Steam')
+    	  order by steam_games.meta_critic desc nulls last
+    	  limit 15
         """).as(withSteamPrice *)
     }
   }

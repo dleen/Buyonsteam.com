@@ -60,7 +60,7 @@ object DlGamerScraper {
     def gameVals(html: Element): Game = {
       val name = html.getElementsByClass("title").text
       val gameUrl = html.getElementsByClass("title").select("a").attr("href")
-      val imgUrl = "http://dlgamer.us" + html.select("img").attr("src")
+      val imgUrl = "http://dlgamer.us/" + html.select("img").attr("src")
 
       Game(NotAssigned, name, DlGamerScraper.name, gameUrl, imgUrl)
     }
