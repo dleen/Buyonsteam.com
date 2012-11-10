@@ -48,7 +48,7 @@ object Application extends Controller {
    Action { Home }
   }
 
-  //ActorSystem("foo").scheduler.schedule(10.seconds, 5.seconds)(println("Arf"))
+  ActorSystem("foo").scheduler.schedule(10.seconds, 1.hour)(scrapeEverything)
 
   val Home = Redirect(routes.Application.index)
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
