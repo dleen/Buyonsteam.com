@@ -142,11 +142,16 @@ object Game {
   }
 
   // Retrieve a game by name
-  // FIX THIS
-  def findByName(name: String): Option[Game] = {
+  def findByName(name: String) = {
     DB.withConnection { implicit connection =>
-      SQL("select * from games where upper(name) like upper({name})")
-        .on('name -> name).as(Game.simple.singleOpt)
+      SQL("""
+          select *, similarity(name, {name}) from scraped_games 
+          where lower(name) % lower({name})
+          order by similarity desc
+          """)
+        .on('name -> name).as(Game.simple ~ get[Double]("similarity") *) map {
+          case a ~ b => (a, b)
+        }
     }
   }
 
@@ -258,7 +263,8 @@ object Price {
   }
 }
 
-case class DataCleanup(sim: Double, n1: String, id1: Int, n2: String, id2: Int)
+case class DataCleanup(sim: Double, n1: String, id1: Int, url1: String,
+  n2: String, id2: Int, url2: String)
 
 object DataCleanup {
 
@@ -299,25 +305,28 @@ object DataCleanup {
       get[String]("b") ~
       get[Int]("c") ~
       get[String]("d") ~
-      get[Int]("e") map {
-        case sim ~ n1 ~ id1 ~ n2 ~ id2 =>
-          DataCleanup(sim, n1, id1, n2, id2)
+      get[String]("e") ~
+      get[Int]("f") ~
+      get[String]("g") map {
+        case sim ~ n1 ~ url1 ~ id1 ~ n2 ~ id2 ~ url2 =>
+          DataCleanup(sim, n1, url1, id1, n2, id2, url2)
       }
   }
 
-  def matchManually(page: Int = 0, pageSize: Int = 10) = {
+  def matchManually(page: Int = 0, pageSize: Int = 5) = {
 
     val offset = pageSize * page
 
     val matchedPairs = DB.withConnection { implicit connection =>
       SQL(
         """
-        with matched(a,b,c,d,e) as (
+        with matched(a,b,c,d,e,f,g) as (
         SELECT cast(similarity(n1.name, n2.name) as double precision), 
-        n1.name, n1.unq_game_id, n2.name, n2.unq_game_id
+        n1.name, n1.unq_game_id, n1.store_url, n2.name, n2.unq_game_id, n2.store_url
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
-    	AND lower(substring(n1.name from 1 for 4)) = lower(substring(n2.name from 1 for 4))
+    	AND lower(substring(n1.name from 1 for 5)) = lower(substring(n2.name from 1 for 5))
+        and levenshtein(lower(n1.name), lower(n2.name)) < 5
     	where n1.unq_game_id < n2.unq_game_id
     	order by similarity desc)
         select *, count(*) over() as full_count
@@ -360,6 +369,22 @@ object HelperFunctions {
     	  where (price_history.on_sale = true AND price_history.date_recorded = 'today' AND unqg.store = 'Steam')
     	  order by steam_games.meta_critic desc nulls last
         """).as(withSteamPrice *)
+    }
+  }
+
+  // Order by discount amount
+  // TODO
+  def recommendGamesB = {}
+
+  def listOrSingle(name: String) = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+    		select count(*) from (
+    		select distinct on (unq_game_id) id
+    		from scraped_games
+    		where name % {name}) as temp
+        """).on('name -> name)
+        .as(scalar[Long].single).toInt
     }
   }
 

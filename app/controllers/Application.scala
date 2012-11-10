@@ -24,7 +24,11 @@ object Application extends Controller {
     Ok(html.game(Game.storePrice(name = (name))))
   }
   
-  def gameQ(name: String) = Action { gameP(name) }
+  def gameQ(name: String) = Action { implicit request =>
+    if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
+    else if (HelperFunctions.listOrSingle(name) == 1) Ok(html.game(Game.storePrice(name)))
+    else Ok(html.listgame(Game.findByName(name)))
+    }
 
   def scrapeEverything = {
 

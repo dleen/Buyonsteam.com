@@ -81,9 +81,9 @@
 			@xx.map { x =>
 			<tr>
 				<td> @x.sim.toString.take(6) </td>
-				<td> @x.n1 </td>
+				<td> <a href="@x.url1">@x.n1</a> </td>
 				<td> @x.id1 </td>
-				<td> @x.n2 </td>
+        <td> <a href="@x.url2">@x.n2</a> </td>
 				<td> @x.id2 </td>
 				<td> @form(routes.Application.matchem(x.id1, x.id2, currentPage.page), 'class -> "navbar-form pull-right") {
         			<input type="submit" value="Match these names" class="btn danger">
