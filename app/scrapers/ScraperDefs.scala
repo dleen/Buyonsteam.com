@@ -44,7 +44,7 @@ object Scraper {
       if (conStat.map(_.statusCode).getOrElse(0) == 200) Some(conStat.get.parse)
       else if (count > 24) None
       else {
-        println(count)
+        //println(count)
         checker(count + 1,
           catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException],
             classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)

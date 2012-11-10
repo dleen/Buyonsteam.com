@@ -127,7 +127,7 @@ class SteamMaster(listener: ActorRef) extends Actor {
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertPrice(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertSteam(x))
 
-      printf("St:%d ".format(nrOfResults))
+      //printf("St:%d ".format(nrOfResults))
       nrOfResults += 1
 
       if (nrOfResults == SteamScraper.finalPage) {

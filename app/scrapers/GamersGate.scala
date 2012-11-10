@@ -108,11 +108,11 @@ class GamersGateMaster(listener: ActorRef) extends Actor {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      printf("GG:%d ".format(nrOfResults))
+      //printf("GG:%d ".format(nrOfResults))
       nrOfResults += 1
 
       if (nrOfResults == GamersGateScraper.finalPage) {
-        println("All done in: %s".format((System.currentTimeMillis - start).millis))
+        println("GG done in: %s".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GamersGate", (System.currentTimeMillis - start).millis)
         context.stop(self)

@@ -137,7 +137,7 @@ object Game {
   // Retrieve a game by id
   def findById(id: Long): Option[Game] = {
     DB.withConnection { implicit connection =>
-      SQL("select * from games where id = {id}").on('id -> id).as(Game.simple.singleOpt)
+      SQL("select * from scraped_games where id = {id}").on('id -> id).as(Game.simple.singleOpt)
     }
   }
 
@@ -145,8 +145,10 @@ object Game {
   def findByName(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
-          select *, similarity(name, {name}) from scraped_games 
-          where lower(name) % lower({name})
+    	  select * from (
+          select distinct on (unq_game_id) *, cast(similarity(name, 'dish') as double precision)
+          from scraped_games 
+          where name % 'dish') as temp
           order by similarity desc
           """)
         .on('name -> name).as(Game.simple ~ get[Double]("similarity") *) map {
@@ -288,14 +290,13 @@ object DataCleanup {
     DB.withConnection { implicit connection =>
       SQL(
         """
-    	with matched(a, b, c) as (
-    	SELECT similarity(n1.name, n2.name), n1.unq_game_id, n2.unq_game_id
+    	with matched(b, c) as (
+    	SELECT n1.unq_game_id, n2.unq_game_id
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
-    	AND lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3))
-    	AND lower(n1.name) % lower(n2.name)
-    	where n1.unq_game_id < n2.unq_game_id)
-    	update scraped_games set unq_game_id = b from matched where unq_game_id = c and a = 1
+    	AND lower(substring(n1.name from 1 for 5)) = lower(substring(n2.name from 1 for 5))
+    	where n1.unq_game_id < n2.unq_game_id and similarity(n1.name, n2.name) = 1)
+    	update scraped_games set unq_game_id = b from matched where unq_game_id = c
         """).executeUpdate()
     }
   }
@@ -321,16 +322,16 @@ object DataCleanup {
       SQL(
         """
         with matched(a,b,c,d,e,f,g) as (
-        SELECT cast(similarity(n1.name, n2.name) as double precision), 
+        SELECT distinct on (n1.unq_game_id, n2.unq_game_id) cast(similarity(n1.name, n2.name) as double precision), 
         n1.name, n1.unq_game_id, n1.store_url, n2.name, n2.unq_game_id, n2.store_url
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
-    	AND lower(substring(n1.name from 1 for 5)) = lower(substring(n2.name from 1 for 5))
-        and levenshtein(lower(n1.name), lower(n2.name)) < 5
-    	where n1.unq_game_id < n2.unq_game_id
-    	order by similarity desc)
+    	AND lower(substring(n1.name from 1 for 6)) = lower(substring(n2.name from 1 for 6))
+        and levenshtein(lower(n1.name), lower(n2.name)) < 7
+    	where n1.unq_game_id < n2.unq_game_id)
         select *, count(*) over() as full_count
         from matched
+        order by a desc, c, f
         limit {pagesize} offset {offset}
         """).on('pagesize -> pageSize, 'offset -> offset)
         .as(DataCleanup.simple ~ get[Long]("full_count") *) map {
@@ -362,17 +363,16 @@ object HelperFunctions {
   def recommendGamesA = {
     DB.withConnection { implicit connection =>
       SQL("""
-    	  select * from (
-    	  select distinct on (unq_game_id) * from scraped_games order by unq_game_id) as unqg
-    	  left join price_history on unqg.id = price_history.game_id
-    	  left join steam_games on unqg.id = steam_games.game_id
-    	  where (price_history.on_sale = true AND price_history.date_recorded = 'today' AND unqg.store = 'Steam')
+    	  select * from scraped_games
+    	  left join price_history on scraped_games.id = price_history.game_id
+    	  left join steam_games on scraped_games.id = steam_games.game_id
+    	  where (price_history.on_sale = true AND price_history.date_recorded = 'today' AND store = 'Steam')
     	  order by steam_games.meta_critic desc nulls last
         """).as(withSteamPrice *)
     }
   }
 
-  // Order by discount amount
+  // Order by discount amount instead of metacritic
   // TODO
   def recommendGamesB = {}
 

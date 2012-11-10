@@ -14,17 +14,10 @@ import views._
 
 object Application extends Controller {
 
-  /*
-   * Testing code.
-   */
 
-  def main = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
+
   
-  def gameP(name: String) = Action { implicit request =>
-    Ok(html.game(Game.storePrice(name = (name))))
-  }
-  
-  def gameQ(name: String) = Action { implicit request =>
+  def gameQ(name: String) = Action {
     if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
     else if (HelperFunctions.listOrSingle(name) == 1) Ok(html.game(Game.storePrice(name)))
     else Ok(html.listgame(Game.findByName(name)))
@@ -51,17 +44,20 @@ object Application extends Controller {
   }
 
   def reindex = {
-    scrapeEverything
-    main
+   scrapeEverything
+   Action { Home }
   }
 
-  //ActorSystem("foo").scheduler.schedule(10.seconds, 10.seconds)(test)
+  //ActorSystem("foo").scheduler.schedule(10.seconds, 5.seconds)(println("Arf"))
 
-  /*
-   * Real working code.
-   */
-
-  def manualMatching(page: Int) = Action { implicit request =>
+  val Home = Redirect(routes.Application.index)
+  def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
+  
+  def gameP(name: String) = Action {
+    Ok(html.game(Game.storePrice(name = (name))))
+  }
+  
+  def manualMatching(page: Int) = Action {
     Ok(html.manmatch(DataCleanup.matchManually(page = page)))
   }
 
@@ -73,9 +69,9 @@ object Application extends Controller {
     Ok(toJson(DataCleanup.matchSimilarNames))
   }
 
-  def matchem(id1: Int, id2: Int, page: Int) = Action { implicit request =>
+  def matchem(id1: Int, id2: Int, page: Int) = Action {
     DataCleanup.equateIds(id1, id2)
-    Ok(html.manmatch(DataCleanup.matchManually(page = page)))
+    Redirect(routes.Application.manualMatching(page))
   }
 
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }

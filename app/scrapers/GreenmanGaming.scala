@@ -106,7 +106,7 @@ class GreenmanGamingMaster(listener: ActorRef) extends Actor {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      printf("GM:%d ".format(nrOfResults))
+      //printf("GM:%d ".format(nrOfResults))
       nrOfResults += 1
 
       if (nrOfResults == GreenmanGamingScraper.finalPage) {

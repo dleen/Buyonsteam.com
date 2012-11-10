@@ -3,7 +3,7 @@
 # ~~~~
 
 # Home page
-GET	/						controllers.Application.main
+GET	/						controllers.Application.index
 
 GET /game					controllers.Application.gameP(g ?= "")
 
@@ -14,10 +14,9 @@ GET /matchexact				controllers.Application.matchExact
 GET /matchsimilar			controllers.Application.matchSimilar
 
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
+POST /matchem				controllers.Application.matchem(id1: Int, id2: Int, p: Int ?= 0)
 
 GET	/:name					controllers.Application.gameQ(name: String)
-
-POST /matchem				controllers.Application.matchem(id1: Int, id2: Int, p: Int ?= 0)
 
 # Map static resources from the /public folder to the /assets URL path
 GET	/assets/*file			controllers.Assets.at(path="/public", file)

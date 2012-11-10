@@ -100,7 +100,7 @@ class DlGamerMaster(listener: ActorRef) extends Actor {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      printf("Dl:%d ".format(nrOfResults))
+      //printf("Dl:%d ".format(nrOfResults))
       nrOfResults += 1
 
       if (nrOfResults == DlGamerScraper.finalPage) {
