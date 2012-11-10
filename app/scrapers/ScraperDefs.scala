@@ -55,6 +55,28 @@ object Scraper {
     checker(0, ping)
   }
 
+  def matchExact = {
+    def matchEx(matched: Int, acc: Int): Int = {
+      if (matched == 0) acc
+      else {
+        val numMatched = DataCleanup.matchExactNames
+        matchEx(numMatched, acc + numMatched)
+      }
+    }
+    matchEx(1, 0)
+  }
+
+  def matchSimilar = {
+    def matchEx(matched: Int, acc: Int): Int = {
+      if (matched == 0) acc
+      else {
+        val numMatched = DataCleanup.matchSimilarNames
+        matchEx(numMatched, acc + numMatched)
+      }
+    }
+    matchEx(1, 0)
+  }
+
 }
 
 sealed trait ScrapedMessage
@@ -75,6 +97,12 @@ class Listener extends Actor {
     totalTime += duration
     println("RESULTS:" + nrOfResults.toString)
     if (nrOfResults == 5) {
+      val matex = Scraper.matchExact
+      val matsim = Scraper.matchSimilar
+
+      println("Number exact matched: " + matex.toString)
+      println("Number exact similar: " + matsim.toString)
+
       println("****** ALL DONE ******")
       println("TOTAL TIME TAKEN: " + totalTime.toString)
       println("****** ALL DONE ******")

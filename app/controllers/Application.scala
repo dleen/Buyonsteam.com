@@ -18,9 +18,7 @@ object Application extends Controller {
    * Testing code.
    */
 
-  val recGames = HelperFunctions.recommendGamesA
-
-  def main = Action { Ok(html.main(recGames)) }
+  def main = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
   
   def gameP(name: String) = Action { implicit request =>
     Ok(html.game(Game.storePrice(name = (name))))
@@ -59,8 +57,8 @@ object Application extends Controller {
    * Real working code.
    */
 
-  def manualMatching = Action {
-    Ok(html.manmatch(DataCleanup.matchManually))
+  def manualMatching(page: Int) = Action { implicit request =>
+    Ok(html.manmatch(DataCleanup.matchManually(page = page)))
   }
 
   def matchExact = Action {
@@ -71,9 +69,9 @@ object Application extends Controller {
     Ok(toJson(DataCleanup.matchSimilarNames))
   }
 
-  def matchem(id1: Int, id2: Int) = Action {
+  def matchem(id1: Int, id2: Int, page: Int) = Action { implicit request =>
     DataCleanup.equateIds(id1, id2)
-    Ok(html.manmatch(DataCleanup.matchManually))
+    Ok(html.manmatch(DataCleanup.matchManually(page = page)))
   }
 
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }

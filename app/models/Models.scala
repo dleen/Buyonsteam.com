@@ -118,7 +118,7 @@ object Game {
 
     }
   }
-  
+
   def storePrice(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
@@ -128,9 +128,9 @@ object Game {
     		  order by game_id, date_recorded desc) as test
     		  on scraped_games.id = test.game_id
     		  where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
-    		  scraped_games where name = {name})
+    		  scraped_games where lower(name) = lower({name}))
           """).on('name -> name).as(withPrice *)
-      
+
     }
   }
 
@@ -156,7 +156,7 @@ object Game {
       SQL("""
     	  select * from (
           select distinct on (unq_game_id) similarity({name}, name), name from scraped_games 
-          where (levenshtein(lower(substring(name from 1 for {sz})), lower({name})) < 2)
+          where name % {name}
           order by unq_game_id, similarity desc
           limit 6) as sim
           order by similarity desc
@@ -305,8 +305,11 @@ object DataCleanup {
       }
   }
 
-  def matchManually = {
-    DB.withConnection { implicit connection =>
+  def matchManually(page: Int = 0, pageSize: Int = 10) = {
+
+    val offset = pageSize * page
+
+    val matchedPairs = DB.withConnection { implicit connection =>
       SQL(
         """
         with matched(a,b,c,d,e) as (
@@ -315,12 +318,20 @@ object DataCleanup {
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
     	AND lower(substring(n1.name from 1 for 4)) = lower(substring(n2.name from 1 for 4))
-    	AND levenshtein(lower(n1.name), lower(n2.name)) < 3
     	where n1.unq_game_id < n2.unq_game_id
     	order by similarity desc)
-        select * from matched
-        """).as(DataCleanup.simple *)
+        select *, count(*) over() as full_count
+        from matched
+        limit {pagesize} offset {offset}
+        """).on('pagesize -> pageSize, 'offset -> offset)
+        .as(DataCleanup.simple ~ get[Long]("full_count") *) map {
+          case a ~ b => (a, b)
+        }
     }
+
+    Page(matchedPairs map { case (a, b) => a },
+      page, offset,
+      matchedPairs map { case (a, b) => b } head)
   }
 
   def equateIds(id1: Int, id2: Int) = {
