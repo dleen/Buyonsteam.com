@@ -9,6 +9,9 @@ import akka.actor._
 import akka.util.Duration
 import akka.util.duration.intToDurationInt
 
+import play.api._
+
+
 import models._
 
 abstract class Scraper extends Actor
@@ -133,7 +136,7 @@ class Runner extends Actor {
 
   def receive = {
     case Gogo => Runner.scrapeEverything
-    case Gogo1 => println("Arf arf")
+    case Gogo1 => Logger.error("Arf arf")
   }
 
 }
