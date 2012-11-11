@@ -20,7 +20,7 @@ object ScrapeJob extends App {
 
   val listener = system.actorOf(Props[Listener], name = "listener")
 
-  // val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
+  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
   val GSmaster = system.actorOf(Props(new GameStopMaster(listener)), name = "GSmaster")
   val Dlmaster = system.actorOf(Props(new DlGamerMaster(listener)), name = "Dlmaster")
   val GGmaster = system.actorOf(Props(new GamersGateMaster(listener)), name = "GGmaster")
@@ -30,6 +30,6 @@ object ScrapeJob extends App {
   Dlmaster ! Scrape
   GGmaster ! Scrape
   Stmaster ! Scrape
-  // GMmaster ! Scrape
+  GMmaster ! Scrape
 
 }
