@@ -15,18 +15,12 @@ import models._
 import views._
 
 object Application extends Controller {
-  /*
-  val SS = ActorSystem("ScraperScheduler")
-  val TListen = SS.actorOf(Props(new TListen), name = "TListen")
-  SS.scheduler.schedule(1.seconds, 1.seconds, TListen, Scrape)
-*/
 
   def gameQ(name: String) = Action {
     if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
     else if (HelperFunctions.listOrSingle(name) == 1) Ok(html.game(Game.storePrice(name)))
     else Ok(html.listgame(Game.findByName(name)))
   }
-
 
   val Home = Redirect(routes.Application.index)
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
