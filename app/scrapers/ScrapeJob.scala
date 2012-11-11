@@ -1,6 +1,6 @@
 package scrapers
 
-class ScrapeJob extends App {
+object ScrapeJob extends App {
 
   println("Hello ScrapeJobs!")
   

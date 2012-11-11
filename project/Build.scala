@@ -13,7 +13,7 @@ object ApplicationBuild extends Build {
     "postgresql" % "postgresql" % "9.1-901-1.jdbc4" // Add your project dependencies here,
     )
 
-  val scraper = Project("scraper", file("scrapers")).settings(mainClass := Some("ScrapeJob"))
+  val scraper = Project("scraper", file("scrapers")).settings(mainClass := Some("scrapers.ScrapeJob"))
 
   val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
     // Add your own project settings here  
