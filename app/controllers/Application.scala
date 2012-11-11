@@ -27,10 +27,6 @@ object Application extends Controller {
     else Ok(html.listgame(Game.findByName(name)))
   }
 
-  def reindex = {
-    Runner.scrapeEverything
-    Action { Home }
-  }
 
   val Home = Redirect(routes.Application.index)
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }

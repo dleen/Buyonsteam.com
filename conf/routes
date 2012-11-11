@@ -7,8 +7,6 @@ GET	/						controllers.Application.index
 
 GET /game					controllers.Application.gameP(g ?= "")
 
-GET	/reindex				controllers.Application.reindex
-
 GET /manmatch				controllers.Application.manualMatching(p: Int ?= 0)
 GET /matchexact				controllers.Application.matchExact
 GET /matchsimilar			controllers.Application.matchSimilar
