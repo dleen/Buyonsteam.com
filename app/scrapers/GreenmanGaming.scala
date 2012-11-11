@@ -110,7 +110,7 @@ class GreenmanGamingMaster(listener: ActorRef) extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == GreenmanGamingScraper.finalPage) {
-        printf("GM done in: %s ".format((System.currentTimeMillis - start).millis))
+        println("GM done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GreenmanGaming", (System.currentTimeMillis - start).millis)
         context.stop(self)
@@ -121,7 +121,7 @@ class GreenmanGamingMaster(listener: ActorRef) extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == GreenmanGamingScraper.finalPage) {
-        printf("GM done in: %s ".format((System.currentTimeMillis - start).millis))
+        println("GM done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GreenmanGaming", (System.currentTimeMillis - start).millis)
         context.stop(self)

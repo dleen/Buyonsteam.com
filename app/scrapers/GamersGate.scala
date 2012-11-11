@@ -123,7 +123,7 @@ class GamersGateMaster(listener: ActorRef) extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == GamersGateScraper.finalPage) {
-        printf("GG done in: %s ".format((System.currentTimeMillis - start).millis))
+        println("GG done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GamersGate", (System.currentTimeMillis - start).millis)
         context.stop(self)

@@ -5,7 +5,7 @@ import scala.util.control.Exception.catching
 import org.jsoup.HttpStatusException
 import org.jsoup.Jsoup
 
-import akka.actor.Actor
+import akka.actor._
 import akka.util.Duration
 import akka.util.duration.intToDurationInt
 
@@ -85,6 +85,8 @@ case class GameFetchedG(gl: List[GwithP], pageN: Int, success: Boolean) extends 
 case class GameFetched(gl: List[GwithP]) extends ScrapedMessage
 case class GameFetchedS(gl: List[GSwP], pageN: Int, success: Boolean) extends ScrapedMessage
 case object Scrape extends ScrapedMessage
+case object Gogo extends ScrapedMessage
+case object Gogo1 extends ScrapedMessage
 case class Finished(who: String, duration: Duration) extends ScrapedMessage
 
 class Listener extends Actor {
@@ -92,10 +94,12 @@ class Listener extends Actor {
   var nrOfResults: Int = 0
   var totalTime: Duration = 0.millis
 
+  val start: Long = System.currentTimeMillis
+
   def incre(duration: Duration) = {
     nrOfResults += 1
     totalTime += duration
-    println("RESULTS:" + nrOfResults.toString)
+    println("RESULTS: " + nrOfResults.toString)
     if (nrOfResults == 5) {
       val matex = Scraper.matchExact
       val matsim = Scraper.matchSimilar
@@ -106,6 +110,7 @@ class Listener extends Actor {
       println("****** ALL DONE ******")
       println("TOTAL TIME TAKEN: " + totalTime.toString)
       println("****** ALL DONE ******")
+
       context.system.shutdown()
     }
   }
@@ -120,6 +125,39 @@ class Listener extends Actor {
         case "Steam" => incre(duration)
       }
     }
+  }
+
+}
+
+class Runner extends Actor {
+
+  def receive = {
+    case Gogo => Runner.scrapeEverything
+    case Gogo1 => println("Arf arf")
+  }
+
+}
+
+object Runner {
+
+  def scrapeEverything = {
+
+    val system = ActorSystem("ScraperSystem")
+
+    val listener = system.actorOf(Props[Listener], name = "listener")
+
+    val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
+    val GSmaster = system.actorOf(Props(new GameStopMaster(listener)), name = "GSmaster")
+    val Dlmaster = system.actorOf(Props(new DlGamerMaster(listener)), name = "Dlmaster")
+    val GGmaster = system.actorOf(Props(new GamersGateMaster(listener)), name = "GGmaster")
+    val Stmaster = system.actorOf(Props(new SteamMaster(listener)), name = "Stmaster")
+
+    GSmaster ! Scrape
+    Dlmaster ! Scrape
+    GGmaster ! Scrape
+    Stmaster ! Scrape
+    GMmaster ! Scrape
+
   }
 
 }

@@ -115,7 +115,7 @@ class DlGamerMaster(listener: ActorRef) extends Actor {
       nrOfResults += 1
 
       if (nrOfResults == DlGamerScraper.finalPage) {
-        printf("Dl done in: %s ".format((System.currentTimeMillis - start).millis))
+        println("Dl done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("DlGamer", (System.currentTimeMillis - start).millis)
         context.stop(self)
