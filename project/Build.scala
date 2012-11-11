@@ -13,9 +13,11 @@ object ApplicationBuild extends Build {
     "postgresql" % "postgresql" % "9.1-901-1.jdbc4" // Add your project dependencies here,
     )
 
+  val scraper = Project("scraper", file("scrapers")).settings(mainClass := Some("ScrapeJob"))
+
   val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
     // Add your own project settings here  
     resolvers += "releases" at "https://oss.sonatype.org/content/repositories/releases",
-    resolvers += "snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")
+    resolvers += "snapshots" at "https://oss.sonatype.org/content/repositories/snapshots").dependsOn(scraper)
 
 }
