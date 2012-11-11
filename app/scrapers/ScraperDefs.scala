@@ -101,7 +101,7 @@ class Listener extends Actor {
     nrOfResults += 1
     totalTime += duration
     println("RESULTS: " + nrOfResults.toString)
-    if (nrOfResults == 5) {
+    if (nrOfResults == 4) {
       val matex = Scraper.matchExact
       val matsim = Scraper.matchSimilar
 
