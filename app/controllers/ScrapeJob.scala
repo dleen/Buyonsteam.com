@@ -10,17 +10,14 @@ import play.api.Application
 
 import java.io.File
 
-object ScrapeJob extends App {
+object ScrapeJob4 extends App {
 
-  val application = new Application(new File("."), ScrapeJob.getClass.getClassLoader(), null, Mode.Prod)
-
+  val application = new Application(new File("."), ScrapeJob4.getClass.getClassLoader(), null, Mode.Prod)
   Play.start(application)
 
   val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(4)), name = "listener")
 
-  val listener = system.actorOf(Props[Listener], name = "listener")
-
-  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
   val GSmaster = system.actorOf(Props(new GameStopMaster(listener)), name = "GSmaster")
   val Dlmaster = system.actorOf(Props(new DlGamerMaster(listener)), name = "Dlmaster")
   val GGmaster = system.actorOf(Props(new GamersGateMaster(listener)), name = "GGmaster")
@@ -30,6 +27,19 @@ object ScrapeJob extends App {
   Dlmaster ! Scrape
   GGmaster ! Scrape
   Stmaster ! Scrape
+
+}
+
+object ScrapeJobGM extends App {
+
+  val application = new Application(new File("."), ScrapeJobGM.getClass.getClassLoader(), null, Mode.Prod)
+  Play.start(application)
+
+  val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
+
+  val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
+
   GMmaster ! Scrape
 
 }

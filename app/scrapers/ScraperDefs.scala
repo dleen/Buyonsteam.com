@@ -90,7 +90,7 @@ case class GameFetchedS(gl: List[GSwP], pageN: Int, success: Boolean) extends Sc
 case object Scrape extends ScrapedMessage
 case class Finished(who: String, duration: Duration) extends ScrapedMessage
 
-class Listener extends Actor {
+class Listener(num: Int) extends Actor {
 
   var nrOfResults: Int = 0
   var totalTime: Duration = 0.millis
@@ -101,7 +101,7 @@ class Listener extends Actor {
     nrOfResults += 1
     totalTime += duration
     println("RESULTS: " + nrOfResults.toString)
-    if (nrOfResults == 5) {
+    if (nrOfResults == num) {
       val matex = Scraper.matchExact
       val matsim = Scraper.matchSimilar
 
