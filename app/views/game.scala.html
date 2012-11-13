@@ -106,8 +106,8 @@
 <script src="@routes.Assets.at("javascripts/jquery.min.js")"></script> 
 <script src="@routes.Assets.at("javascripts/jquery-ui-1.9.1.custom.min.js")"></script> 
 <script src="@routes.Assets.at("javascripts/bootstrap.min.js")"></script> 
-<script src="@routes.Assets.at("javascripts/highstock.js")"></script>
-<script src="@routes.Assets.at("javascripts/modules/exporting.js")"></script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="http://code.highcharts.com/modules/exporting.js"></script>
 <script>    
 $('input.autocomplete').each( function() {
 	var $input = $(this);
@@ -117,33 +117,33 @@ $('input.autocomplete').each( function() {
 </script>
 <script type="text/javascript">
 $(function () {
-var chart1; // globally available
+var chart; // globally available
 $(document).ready(function() {
 
-  	chart1 = new Highcharts.Chart({
+$.getJSON("@routes.Application.priceData(gamePrices.head._1.name)", function(data) {
+  	chart = new Highcharts.Chart({
   		chart: {
   			renderTo: 'chart-cont',
+  			type: 'line',
   			backgroundColor: null
   		},
 
-  		plotOptions: {
-  			series: {
-  				compare: 'percent'
-  			}
-  		},
+        xAxis: {
+            type: 'datetime',
+            dateTimeLabelFormats: { // don't display the dummy year
+                month: '%e. %b',
+                year: '%b'
+            }
+        },
 
   		credits: {
   			enabled: false
   		},
 
-  		series: [{
-  			name: 'test',
-  			data: $.getJSON('@routes.Application.priceData("dishonored")', function(data) {
-  				data
-  			})
-  		}]
+  		series: data
   	});
   });
+});
 });
 </script>
 </body>
