@@ -17,11 +17,12 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.routing.RoundRobinRouter
+import akka.routing.SmallestMailboxRouter
 import akka.util.duration.longToDurationLong
 import anorm.NotAssigned
-
-import models._
+import models.Game
+import models.GwithP
+import models.Price
 
 class GameStopScraper extends Scraper {
 
@@ -43,7 +44,7 @@ object GameStopScraper {
 
     val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-      .cookie("user_country","US").timeout(3000).execute()
+      .cookie("user_country", "US").timeout(3000).execute()
     val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
 
     if (!doc.body.hasText) 1
@@ -61,7 +62,7 @@ object GameStopScraper {
     val url = GameStopScraper.storeHead + ((pageN - 1) * 12).toString + GameStopScraper.storeTail
     val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-      .cookie("user_country","US").timeout(3000).execute()
+      .cookie("user_country", "US").timeout(3000).execute()
 
     def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
 
@@ -95,23 +96,25 @@ object GameStopScraper {
 
 class GameStopMaster(listener: ActorRef) extends Actor {
 
-  private val GSfetcher = context.actorOf(Props[GameStopScraper].withRouter(RoundRobinRouter(4)), name = "GSfetcher")
+  private val GSfetcher = context.actorOf(Props[GameStopScraper].withRouter(SmallestMailboxRouter(16)), name = "GSfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
 
-  println(GameStopScraper.finalPage)
+  val finalPage = GameStopScraper.finalPage
+
+  println(finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to GameStopScraper.finalPage) GSfetcher ! FetchGame(i)
+    case Scrape => for (i <- 1 to finalPage) GSfetcher ! FetchGame(i)
     case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      //printf("GS:%d ".format(nrOfResults))
+      printf("GS:%d ".format(nrOfResults))
       nrOfResults += 1
 
-      if (nrOfResults == GameStopScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("GS done in: %s".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GameStop", (System.currentTimeMillis - start).millis)
@@ -122,8 +125,8 @@ class GameStopMaster(listener: ActorRef) extends Actor {
       println("Problem on GS page: " + pageN.toString)
       nrOfResults += 1
 
-      if (nrOfResults == GameStopScraper.finalPage) {
-        printf("GS done in: %s ".format((System.currentTimeMillis - start).millis))
+      if (nrOfResults == finalPage) {
+        println("GS done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GameStop", (System.currentTimeMillis - start).millis)
         context.stop(self)

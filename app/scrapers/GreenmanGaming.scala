@@ -17,11 +17,12 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.routing.RoundRobinRouter
+import akka.routing.SmallestMailboxRouter
 import akka.util.duration.longToDurationLong
 import anorm.NotAssigned
-
-import models._
+import models.Game
+import models.GwithP
+import models.Price
 
 class GreenmanGamingScraper extends Scraper {
 
@@ -59,7 +60,7 @@ object GreenmanGamingScraper {
     val url = GreenmanGamingScraper.storeHead + pageN.toString
     val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-      .timeout(3000).execute()
+      .timeout(5000).execute()
 
     def allVals(html: Element): GwithP = GwithP(gameVals(html), priceVals(html))
 
@@ -93,23 +94,25 @@ object GreenmanGamingScraper {
 
 class GreenmanGamingMaster(listener: ActorRef) extends Actor {
 
-  private val GMfetcher = context.actorOf(Props[GreenmanGamingScraper].withRouter(RoundRobinRouter(4)), name = "GMfetcher")
+  private val GMfetcher = context.actorOf(Props[GreenmanGamingScraper].withRouter(SmallestMailboxRouter(32)), name = "GMfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
 
-  println(GreenmanGamingScraper.finalPage)
+  val finalPage = GreenmanGamingScraper.finalPage
+
+  println(finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to GreenmanGamingScraper.finalPage) GMfetcher ! FetchGame(i)
+    case Scrape => for (i <- 1 to finalPage) GMfetcher ! FetchGame(i)
     case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      //printf("GM:%d ".format(nrOfResults))
+      printf("GM:%d ".format(nrOfResults))
       nrOfResults += 1
 
-      if (nrOfResults == GreenmanGamingScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("GM done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GreenmanGaming", (System.currentTimeMillis - start).millis)

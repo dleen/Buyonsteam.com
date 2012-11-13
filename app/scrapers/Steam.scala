@@ -17,12 +17,14 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.routing.RoundRobinRouter
+import akka.routing.SmallestMailboxRouter
 import akka.util.duration.longToDurationLong
-
 import anorm.NotAssigned
-
-import models._
+import models.GSwP
+import models.Game
+import models.GwithP
+import models.Price
+import models.SteamGame
 
 class SteamScraper extends Scraper {
 
@@ -57,10 +59,11 @@ object SteamScraper {
 
     if (!doc.body.hasText) 1
     else {
-      val navNumStr = doc.getElementsByClass("search_pagination_right").select("a").text
+      val navNumStr = doc.getElementsByClass("search_pagination_right").head.select("a").text
       val navNumSep = navNumStr.split(' ')
 
-      navNumSep(2).toInt
+      if (navNumSep.length > 2) navNumSep(2).toInt
+      else 1
     }
   }
 
@@ -113,24 +116,26 @@ object SteamScraper {
 
 class SteamMaster(listener: ActorRef) extends Actor {
 
-  private val Stfetcher = context.actorOf(Props[SteamScraper].withRouter(RoundRobinRouter(4)), name = "Stfetcher")
+  private val Stfetcher = context.actorOf(Props[SteamScraper].withRouter(SmallestMailboxRouter(8)), name = "Stfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
 
-  println(SteamScraper.finalPage)
+  val finalPage = SteamScraper.finalPage
+
+  println(finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to SteamScraper.finalPage) Stfetcher ! FetchGame(i)
+    case Scrape => for (i <- 1 to finalPage) Stfetcher ! FetchGame(i)
     case GameFetchedS(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertPrice(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertSteam(x))
 
-      //printf("St:%d ".format(nrOfResults))
+      printf("St:%d ".format(nrOfResults))
       nrOfResults += 1
 
-      if (nrOfResults == SteamScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("St done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("Steam", (System.currentTimeMillis - start).millis)
@@ -141,7 +146,7 @@ class SteamMaster(listener: ActorRef) extends Actor {
       println("Problem on St page: " + pageN.toString)
       nrOfResults += 1
 
-      if (nrOfResults == SteamScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         printf("St done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("Steam", (System.currentTimeMillis - start).millis)
