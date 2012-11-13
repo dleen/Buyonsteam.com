@@ -302,7 +302,7 @@ object Price {
     DB.withConnection { implicit connection =>
       SQL("""     
      select date_recorded, price_on_x, on_sale from price_history where game_id = {id}
-          order by date_recorded
+          order by date_recorded asc, id asc
      """).on('id -> id).as(get[Date]("date_recorded") ~ get[Double]("price_on_x") ~ get[Boolean]("on_sale") *).map {
         case a ~ b ~ c => (a, b, c)
       }
