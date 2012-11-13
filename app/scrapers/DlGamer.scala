@@ -1,5 +1,7 @@
 package scrapers
 
+import java.lang.ExceptionInInitializerError
+import java.net.SocketTimeoutException
 import java.util.Date
 
 import scala.Option.option2Iterable
@@ -15,12 +17,12 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.routing.RoundRobinRouter
+import akka.routing.SmallestMailboxRouter
 import akka.util.duration.longToDurationLong
-
 import anorm.NotAssigned
-
-import models._
+import models.Game
+import models.GwithP
+import models.Price
 
 class DlGamerScraper extends Scraper {
 
@@ -87,23 +89,25 @@ object DlGamerScraper {
 
 class DlGamerMaster(listener: ActorRef) extends Actor {
 
-  private val Dlfetcher = context.actorOf(Props[DlGamerScraper].withRouter(RoundRobinRouter(4)), name = "Dlfetcher")
+  private val Dlfetcher = context.actorOf(Props[DlGamerScraper].withRouter(SmallestMailboxRouter(8)), name = "Dlfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
 
-  println(DlGamerScraper.finalPage)
+  val finalPage = DlGamerScraper.finalPage
+
+  println(finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to DlGamerScraper.finalPage) Dlfetcher ! FetchGame(i)
+    case Scrape => for (i <- 1 to finalPage) Dlfetcher ! FetchGame(i)
     case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      //printf("Dl:%d ".format(nrOfResults))
+      printf("Dl:%d ".format(nrOfResults))
       nrOfResults += 1
 
-      if (nrOfResults == DlGamerScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("Dl done in: %s".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("DlGamer", (System.currentTimeMillis - start).millis)
@@ -114,7 +118,7 @@ class DlGamerMaster(listener: ActorRef) extends Actor {
       println("Problem on Dl page: " + pageN.toString)
       nrOfResults += 1
 
-      if (nrOfResults == DlGamerScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("Dl done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("DlGamer", (System.currentTimeMillis - start).millis)

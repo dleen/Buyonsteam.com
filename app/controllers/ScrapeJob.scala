@@ -1,32 +1,32 @@
 package jobs
 
-import models._
-import scrapers._
-import akka.actor._
-
-import play.api.Play
-import play.api.Mode
-import play.api.Application
-
 import java.io.File
 
-object ScrapeJob4 extends App {
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+import play.api.Application
+import play.api.Mode
+import play.api.Play
+import scrapers.DlGamerMaster
+import scrapers.GameStopMaster
+import scrapers.GamersGateMaster
+import scrapers.GreenmanGamingMaster
+import scrapers.Listener
+import scrapers.Scrape
+import scrapers.SteamMaster
 
-  val application = new Application(new File("."), ScrapeJob4.getClass.getClassLoader(), null, Mode.Prod)
+object ScrapeJobGS extends App {
+
+  val application = new Application(new File("."), ScrapeJobGS.getClass.getClassLoader(), null, Mode.Prod)
   Play.start(application)
 
   val system = ActorSystem("ScraperSystem")
-  val listener = system.actorOf(Props(new Listener(4)), name = "listener")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
 
   val GSmaster = system.actorOf(Props(new GameStopMaster(listener)), name = "GSmaster")
-  val Dlmaster = system.actorOf(Props(new DlGamerMaster(listener)), name = "Dlmaster")
-  val GGmaster = system.actorOf(Props(new GamersGateMaster(listener)), name = "GGmaster")
-  val Stmaster = system.actorOf(Props(new SteamMaster(listener)), name = "Stmaster")
 
   GSmaster ! Scrape
-  Dlmaster ! Scrape
-  GGmaster ! Scrape
-  Stmaster ! Scrape
 
 }
 
@@ -41,5 +41,47 @@ object ScrapeJobGM extends App {
   val GMmaster = system.actorOf(Props(new GreenmanGamingMaster(listener)), name = "GMmaster")
 
   GMmaster ! Scrape
+
+}
+
+object ScrapeJobDl extends App {
+
+  val application = new Application(new File("."), ScrapeJobDl.getClass.getClassLoader(), null, Mode.Prod)
+  Play.start(application)
+
+  val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
+
+  val Dlmaster = system.actorOf(Props(new DlGamerMaster(listener)), name = "Dlmaster")
+
+  Dlmaster ! Scrape
+
+}
+
+object ScrapeJobSt extends App {
+
+  val application = new Application(new File("."), ScrapeJobSt.getClass.getClassLoader(), null, Mode.Prod)
+  Play.start(application)
+
+  val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
+
+  val Stmaster = system.actorOf(Props(new SteamMaster(listener)), name = "Stmaster")
+
+  Stmaster ! Scrape
+
+}
+
+object ScrapeJobGG extends App {
+
+  val application = new Application(new File("."), ScrapeJobGG.getClass.getClassLoader(), null, Mode.Prod)
+  Play.start(application)
+
+  val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
+
+  val GGmaster = system.actorOf(Props(new GamersGateMaster(listener)), name = "GGmaster")
+
+  GGmaster ! Scrape
 
 }

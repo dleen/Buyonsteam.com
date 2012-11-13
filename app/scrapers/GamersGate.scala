@@ -17,11 +17,12 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.routing.RoundRobinRouter
+import akka.routing.SmallestMailboxRouter
 import akka.util.duration.longToDurationLong
 import anorm.NotAssigned
-
-import models._
+import models.Game
+import models.GwithP
+import models.Price
 
 class GamersGateScraper extends Scraper {
 
@@ -95,23 +96,25 @@ object GamersGateScraper {
 
 class GamersGateMaster(listener: ActorRef) extends Actor {
 
-  private val GGfetcher = context.actorOf(Props[GamersGateScraper].withRouter(RoundRobinRouter(4)), name = "GGfetcher")
+  private val GGfetcher = context.actorOf(Props[GamersGateScraper].withRouter(SmallestMailboxRouter(16)), name = "GGfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
 
-  println(GamersGateScraper.finalPage)
+  val finalPage = GamersGateScraper.finalPage
+
+  println(finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to GamersGateScraper.finalPage) GGfetcher ! FetchGame(i)
+    case Scrape => for (i <- 1 to finalPage) GGfetcher ! FetchGame(i)
     case GameFetchedG(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GwithP.insertPrice(x))
 
-      //printf("GG:%d ".format(nrOfResults))
+      printf("GG:%d ".format(nrOfResults))
       nrOfResults += 1
 
-      if (nrOfResults == GamersGateScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("GG done in: %s".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GamersGate", (System.currentTimeMillis - start).millis)
@@ -122,7 +125,7 @@ class GamersGateMaster(listener: ActorRef) extends Actor {
       println("Problem on GG page: " + pageN.toString)
       nrOfResults += 1
 
-      if (nrOfResults == GamersGateScraper.finalPage) {
+      if (nrOfResults == finalPage) {
         println("GG done in: %s ".format((System.currentTimeMillis - start).millis))
 
         listener ! Finished("GamersGate", (System.currentTimeMillis - start).millis)

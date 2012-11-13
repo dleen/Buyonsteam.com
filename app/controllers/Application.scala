@@ -14,6 +14,18 @@ import scrapers._
 import models._
 import views._
 
+import org.jsoup.HttpStatusException
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import org.postgresql.util.PSQLException
+import java.lang.ExceptionInInitializerError
+import java.net.SocketTimeoutException
+import java.util.Date
+
+import scala.Option.option2Iterable
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.util.control.Exception.catching
+
 object Application extends Controller {
 
   def gameQ(name: String) = Action {
@@ -23,6 +35,7 @@ object Application extends Controller {
   }
 
   val Home = Redirect(routes.Application.index)
+
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
 
   def gameP(name: String) = Action {
