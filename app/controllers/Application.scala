@@ -6,15 +6,44 @@ import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.actor.actorRef2Scala
 import akka.util.duration.intToDurationInt
-import play.api.libs.json.Json.toJson
+import play.api.libs.json.Json._
+import play.api.libs.json._
 import play.api.mvc.Action
 import play.api.mvc.Controller
+
+import scala.collection.JavaConversions._
 
 import scrapers._
 import models._
 import views._
 
 object Application extends Controller {
+
+  val test = Game.storePrice("dishonored")
+
+  def priceData(name: String) = {
+    val gamesP = Game.storePrice(name)
+    val games = gamesP map (_._1)
+
+    Action {
+    Ok(toJson(
+      games map { x =>
+        toJson(
+          Map("name" -> toJson(x.store),
+            "data" -> idPrices(x.id.get),
+            "step" -> toJson(true)))
+      })
+    )}
+  }
+
+  val ttest = priceData("dishonored")
+
+  def idPrices(id: Long) = {
+    val price = Price.priceById(id) map {
+      case (a, b) => List(toJson(a.getTime), toJson(b))
+    }
+    toJson(price)
+  }
 
   def gameQ(name: String) = Action {
     if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")

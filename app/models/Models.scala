@@ -141,6 +141,17 @@ object Game {
     }
   }
 
+  // List of distinct games from different stores with this name
+  def idByName(name: String) = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+    	  select distinct on (id) id from scraped_games
+    	  where unq_game_id =
+          (select distinct on (unq_game_id) unq_game_id from scraped_games where lower(name) = {name}) 
+          """).on('name -> name).as(scalar[Long] *)
+    }
+  }
+
   // Retrieve a game by name
   def findByName(name: String) = {
     DB.withConnection { implicit connection =>
@@ -163,7 +174,7 @@ object Game {
       SQL("""
     	  select * from (
           select distinct on (unq_game_id) similarity({name}, name), name from scraped_games 
-          where name % {name}
+          where substring(name from 1 for {sz}) % {name}
           order by unq_game_id, similarity desc
           limit 6) as sim
           order by similarity desc
@@ -185,6 +196,14 @@ object Game {
           'store -> that.store,
           'store_url -> that.storeUrl,
           'img_url -> that.imgUrl).executeInsert()
+    }
+  }
+
+  def storeById(id: Int) = {
+    DB.withConnection { implicit connection =>
+      SQL(""" 
+         select store from scraped_games where id = {id}
+     """).on('id -> id).as(scalar[String].single)
     }
   }
 
@@ -261,6 +280,16 @@ object Price {
           'date_recorded -> that.dateRecorded,
           'name -> game.name,
           'store -> game.store).executeInsert()
+    }
+  }
+
+  def priceById(id: Long) = {
+    DB.withConnection { implicit connection =>
+      SQL("""     
+     select date_recorded, price_on_x from price_history where game_id = {id}
+     """).on('id -> id).as(get[Date]("date_recorded") ~ get[Double]("price_on_x") *).map {
+        case a ~ b => (a, b)
+      }
     }
   }
 }
