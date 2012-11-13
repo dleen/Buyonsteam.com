@@ -31,30 +31,73 @@ import scala.util.control.Exception.catching
 
 object Application extends Controller {
 
-  val test = Game.storePrice("dishonored")
-
   def priceData(name: String) = {
     val gamesP = Game.storePrice(name)
     val games = gamesP map (_._1)
 
     Action {
-    Ok(toJson(
-      games map { x =>
-        toJson(
-          Map("name" -> toJson(x.store),
-            "data" -> idPrices(x.id.get),
-            "step" -> toJson(true)))
-      })
-    )}
+      Ok(toJson(
+        games map { x =>
+          toJson(
+            Map("name" -> toJson(x.store),
+              "data" -> idPrices(x.id.get),
+              "step" -> toJson(true),
+              "id" -> toJson(x.store)))
+        }))
+    }
   }
 
-  val ttest = priceData("dishonored")
+  /*
+    def priceData(name: String) = {
+    val gamesP = Game.storePrice(name)
+    val games = gamesP map (_._1)
+
+    Action {
+      Ok(toJson(
+        games map { x =>
+          toJson(
+            Map("name" -> toJson(x.store),
+              "data" -> idPrices(x.id.get),
+              "step" -> toJson(true)))
+        }))
+    }
+  }*/
+
+  def priceDataSymb(name: String) = {
+    val gamesP = Game.storePrice(name)
+    val gamesPonSale = gamesP.filter(x => x._2.map(_.onSale == true).getOrElse(false))
+    val games = gamesPonSale.map(_._1)
+
+    Action {
+      Ok(toJson(
+        games map { x =>
+          toJson(
+            Map("type" -> toJson("flags"),
+              "data" -> idPricesSymb(x.id.get),
+              "onseries" -> toJson(x.store),
+              "shape" -> toJson("circlepin")))
+        }))
+    }
+  }
 
   def idPrices(id: Long) = {
     val price = Price.priceById(id) map {
-      case (a, b) => List(toJson(a.getTime), toJson(b))
+      case (a, b, true) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),
+        "marker" -> toJson(Map("symbol" -> "url(http://www.highcharts.com/demo/gfx/sun.png)")))
+      case (a, b, false) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),
+        "marker" -> JsNull)
     }
     toJson(price)
+  }
+
+  def idPricesSymb(id: Long) = {
+    val priceSymb = Price.priceById(id) map {
+      case (a, b, false) => JsNull
+      case (a, b, true) => toJson(Map("x" -> toJson(a.getTime),
+        "title" -> toJson("A"),
+        "text" -> toJson("This is a test")))
+    }
+    toJson(priceSymb)
   }
 
   def gameQ(name: String) = Action {
@@ -88,6 +131,6 @@ object Application extends Controller {
     Redirect(routes.Application.manualMatching(page))
   }
 
-  def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialName(term))) }
+  def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialNameTRI(term))) }
 
 }

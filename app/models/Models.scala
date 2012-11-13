@@ -168,8 +168,22 @@ object Game {
     }
   }
 
-  // Retrieve a list of matching game names
-  def findPartialName(name: String): List[String] = {
+  // Retrieve a list of matching game names using like method
+  def findPartialNameLIKE(name: String): List[String] = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+          select * from (
+    	  select distinct on(unq_game_id) name, similarity(name, {name}) from scraped_games
+          where name ilike any (select '%' || {name} || '%' from scraped_games)) as test
+          order by similarity desc
+          limit 6
+          """)
+        .on('name -> name).as(str("name") *)
+    }
+  }
+
+  // Same as above using trigram method
+  def findPartialNameTRI(name: String): List[String] = {
     DB.withConnection { implicit connection =>
       SQL("""
     	  select * from (
@@ -203,6 +217,7 @@ object Game {
     DB.withConnection { implicit connection =>
       SQL(""" 
          select store from scraped_games where id = {id}
+          order by store
      """).on('id -> id).as(scalar[String].single)
     }
   }
@@ -286,9 +301,10 @@ object Price {
   def priceById(id: Long) = {
     DB.withConnection { implicit connection =>
       SQL("""     
-     select date_recorded, price_on_x from price_history where game_id = {id}
-     """).on('id -> id).as(get[Date]("date_recorded") ~ get[Double]("price_on_x") *).map {
-        case a ~ b => (a, b)
+     select date_recorded, price_on_x, on_sale from price_history where game_id = {id}
+          order by date_recorded
+     """).on('id -> id).as(get[Date]("date_recorded") ~ get[Double]("price_on_x") ~ get[Boolean]("on_sale") *).map {
+        case a ~ b ~ c => (a, b, c)
       }
     }
   }

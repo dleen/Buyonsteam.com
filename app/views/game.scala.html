@@ -120,29 +120,30 @@ $(function () {
 var chart; // globally available
 $(document).ready(function() {
 
-$.getJSON("@routes.Application.priceData(gamePrices.head._1.name)", function(data) {
-  	chart = new Highcharts.Chart({
-  		chart: {
-  			renderTo: 'chart-cont',
-  			type: 'line',
-  			backgroundColor: null
-  		},
+	$.getJSON("@routes.Application.priceData(gamePrices.head._1.name)", function(data) {
+		chart = new Highcharts.Chart({
+			chart: {
+				renderTo: 'chart-cont',
+				type: 'line',
+				backgroundColor: null
+			},
 
-        xAxis: {
-            type: 'datetime',
+			xAxis: {
+				type: 'datetime',
             dateTimeLabelFormats: { // don't display the dummy year
-                month: '%e. %b',
-                year: '%b'
-            }
-        },
+            day: '%e. %b',
+            week: '%e. %b'
+        }
+    },
 
-  		credits: {
-  			enabled: false
-  		},
 
-  		series: data
-  	});
-  });
+    credits: {
+    	enabled: false
+    },
+
+    series: data
+});
+	});
 });
 });
 </script>
