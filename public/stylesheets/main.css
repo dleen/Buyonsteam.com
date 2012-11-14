@@ -56,12 +56,18 @@
 }
 
 #head-img {
-  padding-bottom: 20px;
+  padding-bottom: 0px;
 }
 
 #search-box {
   padding-top: 20px;
   text-align: center;
+  background-image: url("../images/diagmonds.png");
+}
+
+#search-box h1 {
+  color: white;
+  font-size: 50px;
 }
 
 #container-table {
@@ -83,20 +89,6 @@ img.center {
   vertical-align: middle;
 }
 
-img.desaturate { filter: grayscale(100%);
-  -webkit-filter: grayscale(100%);
-  -moz-filter: grayscale(100%);
-  -ms-filter: grayscale(100%);
-  -o-filter: grayscale(100%);
-}
-
-img.desaturate:hover { filter: grayscale(0);
-  -webkit-filter: grayscale(0);
-  -moz-filter: grayscale(0);
-  -ms-filter: grayscale(0);
-  -o-filter: grayscale(0);
-}
-
 #my-hero h1 {
   text-align: left;
   margin-bottom: 0px;
@@ -109,4 +101,14 @@ img.desaturate:hover { filter: grayscale(0);
 
 #small-search {
   margin-left: 0px;
+}
+
+#small-indent {
+  font-size: 24px;
+    color: #999999;
+}
+
+#main-text {
+  margin: 0 auto;
+  width: auto;
 }
