@@ -69,7 +69,7 @@
 $('input.autocomplete').each( function() {
  var $input = $(this);
  var serverUrl = $input.data('url');
- $input.autocomplete({ source:serverUrl });
+ $input.autocomplete({ source:serverUrl, delay: 30, autoFocus: true });
 });
 </script>
 </body>

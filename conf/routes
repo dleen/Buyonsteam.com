@@ -9,8 +9,6 @@ GET /game					controllers.Application.gameP(g ?= "")
 GET /pricedata				controllers.Application.priceData(name: String)
 
 GET /manmatch				controllers.Application.manualMatching(p: Int ?= 0)
-GET /matchexact				controllers.Application.matchExact
-GET /matchsimilar			controllers.Application.matchSimilar
 
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
 POST /matchem				controllers.Application.matchem(id1: Int, id2: Int, p: Int ?= 0)

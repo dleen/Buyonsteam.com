@@ -1,4 +1,4 @@
-@(gamePrices: List[(Game, Option[Price])])
+@(gamePrices: List[(Game, Option[Price])], priceStats: PriceStats)
 
 <!DOCTYPE html>
 
@@ -76,22 +76,22 @@
 		</thead>
 		<tbody>
 			<tr>
-				<td>Current</td>
-				<td>$19.99</td>
+				<td>Average</td>
+				<td>$@priceStats.avg</td>
 				<td>Steam Store</td>
 				<td>22/7/2012</td>
 			</tr>
 			<tr class="success">
 				<td>Lowest</td>
-				<td>$19.99</td>
+				<td>$@priceStats.min</td>
 				<td>Steam Store</td>
-				<td>22/7/2012</td>
+				<td>@priceStats.minD</td>
 			</tr>
 			<tr class="error">
 				<td>Highest</td>
-				<td>$19.99</td>
+				<td>$@priceStats.max</td>
 				<td>Steam Store</td>
-				<td>22/7/2012</td>
+				<td>@priceStats.maxD</td>
 			</tr>
 		</tbody>
 	</table>

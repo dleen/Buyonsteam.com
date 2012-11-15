@@ -45,15 +45,13 @@ object Application extends Controller {
         }))
     }
   }
-  
-  val sale = routes.Assets.at("images/sale.png").toString
-  println(sale.toString)
 
   val price = Price.priceById(483)
   price map (x => println(x._1))
   println(price)
 
   def idPrices(id: Long) = {
+    val sale = routes.Assets.at("images/sale.png").toString
     val price = Price.priceById(id) map {
       case (a, b, true) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),
         "marker" -> toJson(Map("symbol" -> toJson("url(" + sale + ")"))))
@@ -65,7 +63,7 @@ object Application extends Controller {
 
   def gameQ(name: String) = Action {
     if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
-    else if (HelperFunctions.listOrSingle(name) == 1) Ok(html.game(Game.storePrice(name)))
+    else if (HelperFunctions.listOrSingle(name) == 1) Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
     else Ok(html.listgame(Game.findByName(name)))
   }
 
@@ -74,19 +72,11 @@ object Application extends Controller {
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
 
   def gameP(name: String) = Action {
-    Ok(html.game(Game.storePrice(name = (name))))
+    Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
   }
 
   def manualMatching(page: Int) = Action {
     Ok(html.manmatch(DataCleanup.matchManually(page = page)))
-  }
-
-  def matchExact = Action {
-    Ok(toJson(DataCleanup.matchExactNames))
-  }
-
-  def matchSimilar = Action {
-    Ok(toJson(DataCleanup.matchSimilarNames))
   }
 
   def matchem(id1: Int, id2: Int, page: Int) = Action {

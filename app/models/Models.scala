@@ -122,13 +122,17 @@ object Game {
   def storePrice(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
-    		  select * from scraped_games
-    		  left join
-    		  (select distinct on (game_id) * from price_history
-    		  order by game_id, date_recorded desc) as test
-    		  on scraped_games.id = test.game_id
+    		  select distinct on(id1) * from (
+    		  select * from
+    		  (select id as id1, * from scraped_games
     		  where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
-    		  scraped_games where lower(name) = lower({name}))
+    		  scraped_games where lower(name) = lower({name})) 
+    		  ) as test1
+    		  left join
+    		  (select * from price_history) as test2
+    		  on test1.id = test2.game_id
+    		  ) as test3
+    		  order by id1, date_recorded desc
           """).on('name -> name).as(withPrice *)
 
     }
@@ -157,9 +161,10 @@ object Game {
     DB.withConnection { implicit connection =>
       SQL("""
     	  select * from (
-          select distinct on (unq_game_id) *, cast(similarity(name, 'dish') as double precision)
+          select distinct on (unq_game_id) *, cast(similarity(name, {name}) as double precision)
           from scraped_games 
-          where name % 'dish') as temp
+          where name % {name}
+          order by unq_game_id, id asc) as temp
           order by similarity desc
           """)
         .on('name -> name).as(Game.simple ~ get[Double]("similarity") *) map {
@@ -371,7 +376,7 @@ object DataCleanup {
         n1.name, n1.unq_game_id, n1.store_url, n2.name, n2.unq_game_id, n2.store_url
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
-    	AND lower(substring(n1.name from 1 for 6)) = lower(substring(n2.name from 1 for 6))
+    	AND lower(substring(n1.name from 1 for 5)) = lower(substring(n2.name from 1 for 5))
         and levenshtein(lower(n1.name), lower(n2.name)) < 7
     	where n1.unq_game_id < n2.unq_game_id)
         select *, count(*) over() as full_count
@@ -430,6 +435,43 @@ object HelperFunctions {
     		where name % {name}) as temp
         """).on('name -> name)
         .as(scalar[Long].single).toInt
+    }
+  }
+
+}
+
+case class PriceStats(maxD: Date, max: Double, minD: Date, min: Double, avg: Double)
+
+object PriceStats {
+
+  val simple = {
+    get[Date]("d1") ~
+      get[Double]("max") ~
+      get[Date]("d2") ~
+      get[Double]("min") ~
+      get[Double]("avg") map {
+        case maxD ~ max ~ minD ~ min ~ avg =>
+          PriceStats(maxD, max, minD, min, avg)
+      }
+  }
+
+  def game(name: String) = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+    		  select first_value(date_recorded) over() as d1, first_value(price_on_x) over() as max,
+    		  last_value(date_recorded) over() as d2, last_value(price_on_x) over() as min,
+    		  avg(price_on_x) over() from (
+    		  (select * from scraped_games
+    		  where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
+    		  scraped_games where lower(name) = lower({name})) 
+    		  ) as test1
+    		  left join
+    		  (select * from price_history) as test2
+    		  on test1.id = test2.game_id) as trans
+    		  order by price_on_x desc, date_recorded desc
+    		  limit 1
+          """).on('name -> name).as(simple.single)
+
     }
   }
 
