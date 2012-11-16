@@ -24,12 +24,15 @@ import org.postgresql.util.PSQLException
 import java.lang.ExceptionInInitializerError
 import java.net.SocketTimeoutException
 import java.util.Date
+import java.util.Calendar
 
 import scala.Option.option2Iterable
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.util.control.Exception.catching
 
 object Application extends Controller {
+
+  type datePrice = (java.util.Date, Double, Boolean)
 
   def priceData(name: String) = {
     val gamesP = Game.storePrice(name)
@@ -40,15 +43,54 @@ object Application extends Controller {
         games map { x =>
           toJson(
             Map("name" -> toJson(x.store),
-              "data" -> idPrices(x.id.get),
-              "step" -> toJson(true)))
+              "data" -> idPrices(x.id.get)))
         }))
     }
   }
 
+  val datet = Price.priceById(115)
+
+  println("Old")
+  datet map (println(_))
+  println("New")
+  val tempt = expandDates(datet) sortBy (_._1)
+  tempt map (println(_))
+
+  def expandDates(pricelist: List[datePrice]) = {
+
+    val ttest = pricelist groupBy (x => x._1) mapValues (x => addTimes(x))
+
+    ttest.values.toList.flatten
+
+  }
+
+  def addTimes(dateList: List[datePrice]): List[datePrice] = {
+
+    val increment = 1000 * 60 * 60 * 24 / dateList.length - 1
+
+    def setTimeInc(datep: datePrice, timeMillis: Long): datePrice = {
+      val cal: Calendar = Calendar.getInstance()
+      cal.setTime(datep._1)
+      val curMillis = cal.getTimeInMillis()
+      cal.setTimeInMillis(curMillis + timeMillis)
+      datep._1.setTime(cal.getTimeInMillis)
+
+      datep
+    }
+
+    def recTime(dateList: List[datePrice], acc: List[datePrice], timeinc: Long): List[datePrice] = {
+      if (dateList.isEmpty) acc
+      else {
+        setTimeInc(dateList.head, timeinc)
+        recTime(dateList.tail, dateList.head :: acc, timeinc + increment)
+      }
+    }
+    recTime(dateList, List(), 0).reverse
+  }
+
   def idPrices(id: Long) = {
     val sale = routes.Assets.at("images/sale.png").toString
-    val price = Price.priceById(id) map {
+    val price = expandDates(Price.priceById(id)) sortBy (_._1) map {
       case (a, b, true) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),
         "marker" -> toJson(Map("symbol" -> toJson("url(" + sale + ")"))))
       case (a, b, false) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),

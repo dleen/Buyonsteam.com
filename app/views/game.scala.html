@@ -143,16 +143,29 @@ $(document).ready(function() {
             	dateTimeLabelFormats: { // don't display the dummy year
             	day: '%e. %b',
             	week: '%e. %b'
-        }
-    },
+        		}
+    		},
 
+    		yAxis: {
+    			title: {
+    				text: 'Price'
+    			}
+    		},
 
-    credits: {
-    	enabled: false
-    },
+            plotOptions: {
+                line: {
+                    dataLabels: {
+                        enabled: true
+                    }
+                }
+            },
 
-    series: data
-});
+    		credits: {
+    			enabled: false
+    		},
+
+    		series: data
+		});
 	});
 });
 });
