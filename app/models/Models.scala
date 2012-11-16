@@ -414,12 +414,14 @@ object HelperFunctions {
     DB.withConnection { implicit connection =>
       SQL("""
     	  select * from (
-    	  select distinct on (unq_game_id) * from scraped_games
+    	  select distinct on(unq_game_id) * from scraped_games
     	  left join price_history on scraped_games.id = price_history.game_id
     	  left join steam_games on scraped_games.id = steam_games.game_id
-    	  where (price_history.on_sale = true AND price_history.date_recorded = 'today' AND store = 'Steam')
-    	  order by unq_game_id, date_recorded desc) as temp
-    	  order by temp.meta_critic desc nulls last
+    	  where (price_history.date_recorded = 'today' AND store = 'Steam')
+    	  order by unq_game_id, date_recorded desc
+    	  ) as test
+    	  where test.on_sale = true
+    	  order by test.meta_critic desc nulls last
         """).as(withSteamPrice *)
     }
   }
