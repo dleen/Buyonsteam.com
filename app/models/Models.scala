@@ -413,11 +413,13 @@ object HelperFunctions {
   def recommendGamesA = {
     DB.withConnection { implicit connection =>
       SQL("""
-    	  select * from scraped_games
+    	  select * from (
+    	  select distinct on (unq_game_id) * from scraped_games
     	  left join price_history on scraped_games.id = price_history.game_id
     	  left join steam_games on scraped_games.id = steam_games.game_id
     	  where (price_history.on_sale = true AND price_history.date_recorded = 'today' AND store = 'Steam')
-    	  order by steam_games.meta_critic desc nulls last
+    	  order by unq_game_id, date_recorded desc) as temp
+    	  order by temp.meta_critic desc nulls last
         """).as(withSteamPrice *)
     }
   }
@@ -461,14 +463,16 @@ object PriceStats {
     		  select first_value(date_recorded) over() as d1, first_value(price_on_x) over() as max,
     		  last_value(date_recorded) over() as d2, last_value(price_on_x) over() as min,
     		  avg(price_on_x) over() from (
+    		  select price_on_x, date_recorded from (
     		  (select * from scraped_games
     		  where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
-    		  scraped_games where lower(name) = lower({name})) 
+    		  scraped_games where lower(name) = lower('Darksiders II')) 
     		  ) as test1
     		  left join
     		  (select * from price_history) as test2
     		  on test1.id = test2.game_id) as trans
     		  order by price_on_x desc, date_recorded desc
+    		  ) as trans1
     		  limit 1
           """).on('name -> name).as(simple.single)
 
