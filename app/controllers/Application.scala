@@ -50,9 +50,9 @@ object Application extends Controller {
 
   val datet = Price.priceById(115)
 
-  println("Old")
+//  println("Old")
   datet map (println(_))
-  println("New")
+//  println("New")
   val tempt = expandDates(datet) sortBy (_._1)
   tempt map (println(_))
 
