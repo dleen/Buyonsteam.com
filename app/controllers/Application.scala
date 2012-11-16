@@ -46,9 +46,6 @@ object Application extends Controller {
     }
   }
 
-  val price = PriceStats.game("dishonored")
-  println(price.avg.toString.take(5))
-
   def idPrices(id: Long) = {
     val sale = routes.Assets.at("images/sale.png").toString
     val price = Price.priceById(id) map {

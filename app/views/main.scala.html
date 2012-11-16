@@ -1,5 +1,15 @@
 @(recGames: List[(Game, Option[SteamGame], Price)])
 
+@nicePrice(price: Double) = @{
+  val dot = price.toString.indexOf('.')
+  val np  = price.toString + "0000000"
+
+  if (dot == 1) np.slice(0,4)
+  else if (dot == 2) np.slice(0,5)
+  else if (dot == 3) np.slice(0,6)
+  else "0"
+}
+
 <!DOCTYPE html>
 
 <html lang="en">
@@ -45,7 +55,7 @@
             <tr>
               <td><img id="table-image" src="@game.imgUrl"></img></td>
               <td><a href="@routes.Application.gameP(game.name)">@game.name</a></td>
-              <td>$@price.priceOnX</td>
+              <td>$@nicePrice(price.priceOnX)</td>
               <td>@steamgame.map(y => if(y.metacritic == 0) <em>n/a</em>
                 else y.metacritic).getOrElse{<em>n/a</em>}</td>
               </tr>

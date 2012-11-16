@@ -364,7 +364,7 @@ object DataCleanup {
       }
   }
 
-  def matchManually(page: Int = 0, pageSize: Int = 5) = {
+  def matchManually(page: Int = 0, pageSize: Int = 10) = {
 
     val offset = pageSize * page
 
@@ -372,16 +372,15 @@ object DataCleanup {
       SQL(
         """
         with matched(a,b,c,d,e,f,g) as (
-        SELECT distinct on (n1.unq_game_id, n2.unq_game_id) cast(similarity(n1.name, n2.name) as double precision), 
+        SELECT distinct on(n1.unq_game_id,n2.unq_game_id) cast(similarity(n1.name, n2.name) as double precision), 
         n1.name, n1.unq_game_id, n1.store_url, n2.name, n2.unq_game_id, n2.store_url
     	FROM   scraped_games n1
-    	JOIN   scraped_games n2 ON n1.unq_game_id <> n2.unq_game_id AND n1.store != n2.store 
+    	JOIN   scraped_games n2 ON n1.unq_game_id < n2.unq_game_id AND n1.store != n2.store 
     	AND lower(substring(n1.name from 1 for 5)) = lower(substring(n2.name from 1 for 5))
-        and levenshtein(lower(n1.name), lower(n2.name)) < 7
-    	where n1.unq_game_id < n2.unq_game_id)
+        order by n1.unq_game_id, n2.unq_game_id, n1.name, n2.name )
         select *, count(*) over() as full_count
         from matched
-        order by a desc, c, f
+        order by a desc, b, c
         limit {pagesize} offset {offset}
         """).on('pagesize -> pageSize, 'offset -> offset)
         .as(DataCleanup.simple ~ get[Long]("full_count") *) map {
@@ -414,14 +413,14 @@ object HelperFunctions {
     DB.withConnection { implicit connection =>
       SQL("""
     	  select * from (
-    	  select distinct on(unq_game_id) * from scraped_games
-    	  left join price_history on scraped_games.id = price_history.game_id
-    	  left join steam_games on scraped_games.id = steam_games.game_id
-    	  where (price_history.date_recorded = 'today' AND store = 'Steam')
-    	  order by unq_game_id, date_recorded desc
-    	  ) as test
-    	  where test.on_sale = true
-    	  order by test.meta_critic desc nulls last
+    	  select distinct on (unq_game_id) * from(
+    	  (select * from scraped_games where store = 'Steam') as s1
+    	  left join price_history p1 on s1.id = p1.game_id
+    	  left join steam_games on s1.id = steam_games.game_id)
+    	  where date_recorded = 'today'
+    	  order by unq_game_id, p1.id desc) as sg
+    	  where on_sale = true
+    	  order by meta_critic desc
         """).as(withSteamPrice *)
     }
   }
@@ -444,32 +443,33 @@ object HelperFunctions {
 
 }
 
-case class PriceStats(maxD: Date, max: Double, minD: Date, min: Double, avg: Double)
+case class PriceStats(maxD: Date, max: Double, smax: String, minD: Date, min: Double, smin: String, avg: Double)
 
 object PriceStats {
 
   val simple = {
     get[Date]("d1") ~
       get[Double]("max") ~
+      get[String]("s1") ~
       get[Date]("d2") ~
       get[Double]("min") ~
+      get[String]("s2") ~
       get[Double]("avg") map {
-        case maxD ~ max ~ minD ~ min ~ avg =>
-          PriceStats(maxD, max, minD, min, avg)
+        case maxD ~ max ~ s1 ~ minD ~ min ~ s2 ~ avg =>
+          PriceStats(maxD, max, s1, minD, min, s2, avg)
       }
   }
 
   def game(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
-    		  select first_value(date_recorded) over() as d1, first_value(price_on_x) over() as max,
-    		  last_value(date_recorded) over() as d2, last_value(price_on_x) over() as min,
+    		  select first_value(date_recorded) over() as d1, first_value(price_on_x) over() as max, first_value(store) over() as s1,
+    		  last_value(date_recorded) over() as d2, last_value(price_on_x) over() as min, last_value(store) over() as s2,
     		  avg(price_on_x) over() from (
-    		  select price_on_x, date_recorded from (
+    		  select price_on_x, date_recorded, store from (
     		  (select * from scraped_games
     		  where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
-    		  scraped_games where lower(name) = lower('Darksiders II')) 
-    		  ) as test1
+    		  scraped_games where lower(name) = lower({name}))) as test1
     		  left join
     		  (select * from price_history) as test2
     		  on test1.id = test2.game_id) as trans
