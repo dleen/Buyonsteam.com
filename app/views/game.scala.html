@@ -1,5 +1,8 @@
 @(gamePrices: List[(Game, Option[Price])], priceStats: PriceStats)
 
+@import play.api.libs.json.Json._
+
+
 @nicePrice(price: Double) = @{
 	val dot = price.toString.indexOf('.')
 	val np  = price.toString + "0000000"
@@ -15,6 +18,7 @@
 <html lang="en">
 <head>
 	<title>Buy Or Wait</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/bootstrap.min.css")">
 	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/bootstrap-responsive.css")">
 	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/jquery-ui-1.9.1.custom.css")">
@@ -22,6 +26,27 @@
 	<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
 	<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("img/glyphicons-halflings.png")">
 	<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("img/glyphicons-halflings-white.png")">
+	<style type="text/css">
+	.bar rect {
+		fill: steelblue;
+	}
+	.bar text.value {
+		fill: white;
+	}
+	.axis {
+		shape-rendering: crispEdges;
+	}
+	.axis path {
+		fill: none;
+	}
+	.x.axis line {
+		stroke: #fff;
+		stroke-opacity: .8;
+	}
+	.y.axis path {
+		stroke: black;
+	}
+	</style>
 </head>
 <body>
 
@@ -111,6 +136,11 @@
 <div class="row-fluid">
 	<div id="chart-cont"></div>
 </div>
+
+<div class="row-fluid">
+	<div id="d3-chart-cont"></div>
+</div>
+
 </div>
 
 <script src="@routes.Assets.at("javascripts/jquery.min.js")"></script> 
@@ -170,5 +200,68 @@ $(document).ready(function() {
 });
 });
 </script>
+<script src="http://d3js.org/d3.v2.min.js"></script>
+<script type="text/javascript">
+function log(msg) {
+	setTimeout(function() {
+		throw new Error(msg);
+	}, 0);
+};
+
+	var data   = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(Map("store" -> toJson(x._1.store), "price" -> toJson(x._2.get.priceOnX))))).toString)');
+
+	var x = d3.scale.linear()
+	.range(["0%", "100%"]);
+
+	var y = d3.scale.ordinal()
+	.rangeBands([0, 100]);
+
+	var xAxis = d3.svg.axis()
+    	.scale(x)
+    	.orient("top")
+    	.tickSize(-10);
+
+	var yAxis = d3.svg.axis()
+    	.scale(y)
+    	.orient("left")
+    	.tickSize(0);
+
+	var svg = d3.select("#d3-chart-cont").append("svg")
+	.attr("class", "chart")
+	.attr("width", "100%")
+	.append("g");
+
+	x.domain([0, d3.max(data, function(d) { return d.price; })]);
+	y.domain(data.map(function(d) { return d.store; }));
+
+	svg.attr("height", 20 * data.map(function(d) { return d.store; }).length);
+
+	var bar = svg.selectAll("g.bar")
+		.data(data)
+		.enter().append("g")
+		.attr("class", "bar")
+		.attr("transform", function(d) { return "translate(0," + y(d.store) + ")"; });
+
+	bar.append("rect")
+		.attr("width", function(d) { return x(d.price); })
+		.attr("height", y.rangeBand());
+
+	bar.append("text")
+	   .attr("class", "value")
+       .attr("x", function(d) { return x(d.price); })
+       .attr("y", y.rangeBand() / 2)
+       .attr("dx", -3)
+       .attr("dy", ".35em")
+       .attr("text-anchor", "end")
+       .text(function(d) { return d.price; });
+
+	svg.append("g")
+    	.attr("class", "x axis")
+    	.call(xAxis);
+
+	svg.append("g")
+    	.attr("class", "y axis")
+    	.call(yAxis);
+    </script>
 </body>
 </html>

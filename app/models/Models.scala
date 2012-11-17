@@ -376,7 +376,7 @@ object DataCleanup {
         n1.name, n1.unq_game_id, n1.store_url, n2.name, n2.unq_game_id, n2.store_url
     	FROM   scraped_games n1
     	JOIN   scraped_games n2 ON n1.unq_game_id < n2.unq_game_id AND n1.store != n2.store 
-    	AND lower(substring(n1.name from 1 for 5)) = lower(substring(n2.name from 1 for 5))
+    	AND lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3))
         order by n1.unq_game_id, n2.unq_game_id, n1.name, n2.name )
         select *, count(*) over() as full_count
         from matched

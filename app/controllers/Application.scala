@@ -34,6 +34,12 @@ object Application extends Controller {
 
   type datePrice = (java.util.Date, Double, Boolean)
 
+      val gamesP = Game.storePrice("Darksiders II") sortBy(x => x._2.get.priceOnX)
+      println(gamesP)
+      val games1 = gamesP.map(x => x._1.store)
+      val prices = gamesP.map(x => Map("store" -> x._1.store, "price" -> x._2.get.priceOnX))
+      println(prices)
+      
   def priceData(name: String) = {
     val gamesP = Game.storePrice(name)
     val games = gamesP map (_._1)
@@ -48,18 +54,9 @@ object Application extends Controller {
     }
   }
 
-  val datet = Price.priceById(115)
-
-//  println("Old")
-  datet map (println(_))
-//  println("New")
-  val tempt = expandDates(datet) sortBy (_._1)
-  tempt map (println(_))
-
   def expandDates(pricelist: List[datePrice]) = {
 
     val ttest = pricelist groupBy (x => x._1) mapValues (x => addTimes(x))
-
     ttest.values.toList.flatten
 
   }
@@ -85,7 +82,20 @@ object Application extends Controller {
         recTime(dateList.tail, dateList.head :: acc, timeinc + increment)
       }
     }
+
     recTime(dateList, List(), 0).reverse
+
+  }
+
+  def data(name: String, store: String) = Action { Ok(idData(name: String, store: String)) }
+
+  def idData(name: String, store: String) = {
+    val gamesP = Game.storePrice(name)
+    val gamesS = gamesP filter (x => x._1.store == store)
+    val price = Price.priceById(gamesS.head._1.id.get) sortBy (_._1) map {
+      case (a, b, _) => toJson(b)
+    }
+    toJson(price)
   }
 
   def idPrices(id: Long) = {
@@ -110,7 +120,8 @@ object Application extends Controller {
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
 
   def gameP(name: String) = Action {
-    Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
+    Ok(html.game(Game.storePrice(name) sortBy(x => x._2.get.priceOnX),
+        PriceStats.game(name)))
   }
 
   def manualMatching(page: Int) = Action {
