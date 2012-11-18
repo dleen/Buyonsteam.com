@@ -36,7 +36,7 @@
 
 #recc {
 	text-align: center;
-  background-color: #dff0d8;
+  background-color: #b2dba1;
 }
 
 
@@ -105,7 +105,7 @@ img.center {
 
 #small-indent {
   font-size: 24px;
-    color: #999999;
+  color: #999999;
 }
 
 #main-text {
@@ -113,16 +113,5 @@ img.center {
   width: auto;
 }
 
-.chart div {
-  font: 10px sans-serif;
-  background-color: steelblue;
-  text-align: right;
-  padding: 3px;
-  margin: 1px;
-  color: white;
-}
-
-.chart rect {
-  stroke: white;
-  fill: steelblue;
+#barchart-cont {
 }

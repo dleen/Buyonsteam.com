@@ -77,14 +77,14 @@ object Game {
       }
   }
 
-  val withPrice = Game.simple ~ (Price.simple ?) map {
+  val withPrice = Game.simple ~ Price.simple map {
     case game ~ price => (game, price)
   }
 
   def list(page: Int = 0,
     pageSize: Int = 10,
     orderBy: Int = 1,
-    filter: String = "%"): Page[(Game, Option[Price])] = {
+    filter: String = "%"): Page[(Game, Price)] = {
 
     val offset = pageSize * page
 
@@ -122,9 +122,9 @@ object Game {
   def storePrice(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
-    		  select distinct on(id1) * from (
+    		  select distinct on(s1) * from (
     		  select * from
-    		  (select id as id1, * from scraped_games
+    		  (select store as s1, * from scraped_games
     		  where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
     		  scraped_games where lower(name) = lower({name})) 
     		  ) as test1
@@ -132,7 +132,7 @@ object Game {
     		  (select * from price_history) as test2
     		  on test1.id = test2.game_id
     		  ) as test3
-    		  order by id1, date_recorded desc
+    		  order by s1, date_recorded desc
           """).on('name -> name).as(withPrice *)
 
     }

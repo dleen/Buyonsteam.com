@@ -34,12 +34,18 @@ object Application extends Controller {
 
   type datePrice = (java.util.Date, Double, Boolean)
 
-      val gamesP = Game.storePrice("Darksiders II") sortBy(x => x._2.get.priceOnX)
-      println(gamesP)
-      val games1 = gamesP.map(x => x._1.store)
-      val prices = gamesP.map(x => Map("store" -> x._1.store, "price" -> x._2.get.priceOnX))
-      println(prices)
-      
+  val gamesP = Game.storePrice("Darksiders II")
+  val nameMap = Map("GreenmanGaming" -> "Greenman",
+    "Steam" -> "Steam",
+    "DlGamer" -> "DlGamer",
+    "GamersGate" -> "GamersG",
+    "GameStop" -> "GameStop")
+
+  gamesP map (x => println(nameMap getOrElse (x._1.store, "n/a")))
+  val games1 = gamesP.map(x => x._1.store)
+  val prices = gamesP.map(x => Map("store" -> x._1.store, "price" -> x._2.priceOnX))
+  //println(prices)
+
   def priceData(name: String) = {
     val gamesP = Game.storePrice(name)
     val games = gamesP map (_._1)
@@ -120,8 +126,16 @@ object Application extends Controller {
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
 
   def gameP(name: String) = Action {
-    Ok(html.game(Game.storePrice(name) sortBy(x => x._2.get.priceOnX),
-        PriceStats.game(name)))
+    Ok(html.game(Game.storePrice(name).sortBy(y => y._2.priceOnX).map {
+      case (x, y) => (x match {
+        case Game(a, b, c, d, e) =>
+          Game(a, b, nameMap getOrElse (c, "n/a"), d, e)
+      }) -> y
+    }, PriceStats.game(name) match {
+      case PriceStats(a, b, c, d, e, f, g) => {
+        PriceStats(a, b, nameMap.getOrElse(c, "n/a"), d, e, nameMap.getOrElse(f, "n/a"), g)
+      }
+    }))
   }
 
   def manualMatching(page: Int) = Action {
