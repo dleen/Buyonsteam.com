@@ -35,3 +35,7 @@ documentation/api
 .worksheet/bin/*
 app/controllers/forTestPurposes.sc
 .gitattributes
+.ensime/*
+.ensime_lucene/*
+
+.ensime

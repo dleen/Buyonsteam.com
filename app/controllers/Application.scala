@@ -46,6 +46,7 @@ object Application extends Controller {
   val prices = gamesP.map(x => Map("store" -> x._1.store, "price" -> x._2.priceOnX))
   //println(prices)
 
+
   def priceData(name: String) = {
     val gamesP = Game.storePrice(name)
     val games = gamesP map (_._1)
@@ -117,7 +118,9 @@ object Application extends Controller {
 
   def gameQ(name: String) = Action {
     if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
-    else if (HelperFunctions.listOrSingle(name) == 1) Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
+    else if (HelperFunctions.listOrSingle(name) == 1) {
+      Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
+    }
     else Ok(html.listgame(Game.findByName(name)))
   }
 
