@@ -32,19 +32,26 @@ import scala.util.control.Exception.catching
 
 object Application extends Controller {
 
+  val gall = Game.storeAllPrice("XCOM Enemy Unknown")
+
+  def mostRecent(g: List[(Game, Price)]): List[(Game, Price)] = {
+    
+    val dates = g map(_._2.dateRecorded.getTime)
+    val recentGames = g filter(_._2.dateRecorded.getTime == dates.max)
+    recentGames.groupBy(_._1.store).mapValues(x => x.sortBy(y => -y._2.id.get)).map(_._2.head).toList
+
+  }
+
+  mostRecent(gall).map(x => println(x)) 
+
+
   type datePrice = (java.util.Date, Double, Boolean)
 
-  val gamesP = Game.storePrice("Darksiders II")
   val nameMap = Map("GreenmanGaming" -> "Greenman",
     "Steam" -> "Steam",
     "DlGamer" -> "DlGamer",
     "GamersGate" -> "GamersG",
     "GameStop" -> "GameStop")
-
-  gamesP map (x => println(nameMap getOrElse (x._1.store, "n/a")))
-  val games1 = gamesP.map(x => x._1.store)
-  val prices = gamesP.map(x => Map("store" -> x._1.store, "price" -> x._2.priceOnX))
-  //println(prices)
 
 
   def priceData(name: String) = {
@@ -94,17 +101,6 @@ object Application extends Controller {
 
   }
 
-  def data(name: String, store: String) = Action { Ok(idData(name: String, store: String)) }
-
-  def idData(name: String, store: String) = {
-    val gamesP = Game.storePrice(name)
-    val gamesS = gamesP filter (x => x._1.store == store)
-    val price = Price.priceById(gamesS.head._1.id.get) sortBy (_._1) map {
-      case (a, b, _) => toJson(b)
-    }
-    toJson(price)
-  }
-
   def idPrices(id: Long) = {
     val sale = routes.Assets.at("images/sale.png").toString
     val price = expandDates(Price.priceById(id)) sortBy (_._1) map {
@@ -130,17 +126,11 @@ object Application extends Controller {
 
   def gameP(name: String) = Action {
     Ok(html.game(Game.storePrice(name).sortBy(y => y._2.priceOnX).map {
-      case (x, y) => (x match {
-        case Game(a, b, c, d, e) =>
-          Game(a, b, nameMap getOrElse (c, "n/a"), d, e)
-      }) -> y
-    }, PriceStats.game(name) match {
-      case PriceStats(a, b, c, d, e, f, g) => {
-        PriceStats(a, b, nameMap.getOrElse(c, "n/a"), d, e, nameMap.getOrElse(f, "n/a"), g)
-      }
-    }))
+      case (x, y) => x.shortStoreName(nameMap) -> y
+    }, PriceStats.game(name).map(_.shortStoreName(nameMap))))
   }
 
+  // Manually matching duplicate names
   def manualMatching(page: Int) = Action {
     Ok(html.manmatch(DataCleanup.matchManually(page = page)))
   }
@@ -150,6 +140,7 @@ object Application extends Controller {
     Redirect(routes.Application.manualMatching(page))
   }
 
+  // Autocomplete
   def autocompleteSearch(term: String) = Action { Ok(toJson(Game.findPartialNameTRI(term))) }
 
 }

@@ -15,6 +15,8 @@ import scrapers.GreenmanGamingMaster
 import scrapers.Listener
 import scrapers.Scrape
 import scrapers.SteamMaster
+import scrapers.SteamDLCMaster
+import scrapers.SteamPkMaster
 
 object ScrapeJobGS extends App {
 
@@ -69,6 +71,34 @@ object ScrapeJobSt extends App {
   val Stmaster = system.actorOf(Props(new SteamMaster(listener)), name = "Stmaster")
 
   Stmaster ! Scrape
+
+}
+
+object ScrapeJobStDLC extends App {
+
+  val application = new Application(new File("."), ScrapeJobStDLC.getClass.getClassLoader(), null, Mode.Prod)
+  Play.start(application)
+
+  val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
+
+  val StDLCmaster = system.actorOf(Props(new SteamDLCMaster(listener)), name = "StDLCmaster")
+
+  StDLCmaster ! Scrape
+
+}
+
+object ScrapeJobStPk extends App {
+
+  val application = new Application(new File("."), ScrapeJobStPk.getClass.getClassLoader(), null, Mode.Prod)
+  Play.start(application)
+
+  val system = ActorSystem("ScraperSystem")
+  val listener = system.actorOf(Props(new Listener(1)), name = "listener")
+
+  val StPkmaster = system.actorOf(Props(new SteamPkMaster(listener)), name = "StPkmaster")
+
+  StPkmaster ! Scrape
 
 }
 

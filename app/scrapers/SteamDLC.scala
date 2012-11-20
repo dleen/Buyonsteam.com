@@ -26,15 +26,15 @@ import models.GwithP
 import models.Price
 import models.SteamGame
 
-class SteamScraper extends Scraper {
+class SteamDLCScraper extends Scraper {
 
   def receive = {
-    case FetchGame(pageN) => sender ! SteamScraper.getAllSteam(pageN)
+    case FetchGame(pageN) => sender ! SteamDLCScraper.getAllSteam(pageN)
   }
 
 }
 
-object SteamScraper {
+object SteamDLCScraper {
 
   private def appId(url: String): Int = {
     url.substring(34, url.indexOf('/', 34)).toInt
@@ -48,7 +48,7 @@ object SteamScraper {
   private val name = "Steam"
 
   private val storeHead =
-  "http://store.steampowered.com/search/results?&cc=us&category1=998&page="
+  "http://store.steampowered.com/search/results?&cc=us&category1=21&page="
 
   val finalPage = {
     val url = storeHead + "1"
@@ -70,7 +70,7 @@ object SteamScraper {
 
   private def getAllSteam(pageN: Int): GameFetchedS = {
 
-    val url = SteamScraper.storeHead + pageN.toString
+    val url = SteamDLCScraper.storeHead + pageN.toString
     val ping = catching(classOf[java.net.SocketTimeoutException], 
       classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
@@ -84,7 +84,7 @@ object SteamScraper {
       val gameUrl = html.select("a").attr("href")
       val imgUrl = html.getElementsByClass("search_capsule").select("img").attr("src")
 
-      Game(NotAssigned, name, SteamScraper.name, gameUrl, imgUrl)
+      Game(NotAssigned, name, SteamDLCScraper.name, gameUrl, imgUrl)
     }
 
     def priceVals(html: Element): Price = {
@@ -116,19 +116,19 @@ object SteamScraper {
 
 }
 
-class SteamMaster(listener: ActorRef) extends Actor {
+class SteamDLCMaster(listener: ActorRef) extends Actor {
 
-  private val Stfetcher = context.actorOf(Props[SteamScraper].withRouter(SmallestMailboxRouter(8)), name = "Stfetcher")
+  private val StDLCfetcher = context.actorOf(Props[SteamDLCScraper].withRouter(SmallestMailboxRouter(8)), name = "StDLCfetcher")
 
   var nrOfResults: Int = _
   val start: Long = System.currentTimeMillis
 
-  val finalPage = SteamScraper.finalPage
+  val finalPage = SteamDLCScraper.finalPage
 
   println(finalPage)
 
   def receive = {
-    case Scrape => for (i <- 1 to finalPage) Stfetcher ! FetchGame(i)
+    case Scrape => for (i <- 1 to finalPage) StDLCfetcher ! FetchGame(i)
     case GameFetchedS(gl, _, true) => {
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertGame(x))
       gl flatMap (x => catching(classOf[PSQLException]) opt GSwP.insertPrice(x))

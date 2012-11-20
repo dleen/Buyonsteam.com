@@ -1,14 +1,6 @@
 @(recGames: List[(Game, Option[SteamGame], Price)])
 
-@nicePrice(price: Double) = @{
-  val dot = price.toString.indexOf('.')
-  val np  = price.toString + "0000000"
-
-  if (dot == 1) np.slice(0,4)
-  else if (dot == 2) np.slice(0,5)
-  else if (dot == 3) np.slice(0,6)
-  else "0"
-}
+@import viewhelpers.ViewHelp._
 
 <!DOCTYPE html>
 
@@ -33,7 +25,7 @@
       <div class="well" id="search-box">
         <h1><small>Should I </small>Buy on Steam <small>or another site?</small></h1>
         <form class="form-search" action="@routes.Application.gameP()">
-          <input type="search" id="searchbox" class="input-xlarge autocomplete" name="g" placeholder="Search for a game..." data-url="@{routes.Application.autocompleteSearch()}" autocomplete="off">
+          <input type="search" id="searchbox" class="input-xlarge autocomplete" name="g" placeholder="Search for a game..." data-url="@{routes.Application.autocompleteSearch()}" autocomplete="off" spellcheck="false">
           <button type="submit" id="searchsubmit" class="btn btn-primary">Buy On Steam?</button>
         </form>
       </div>
@@ -72,14 +64,14 @@
     </div>
   </div>
 
-<script src="@routes.Assets.at("javascripts/jquery.min.js")"></script> 
+<script src="http://code.jquery.com/jquery-latest.min.js"></script> 
 <script src="@routes.Assets.at("javascripts/jquery-ui-1.9.1.custom.min.js")"></script> 
 <script src="@routes.Assets.at("javascripts/bootstrap.min.js")"></script>
 <script>    
 $('input.autocomplete').each( function() {
  var $input = $(this);
  var serverUrl = $input.data('url');
- $input.autocomplete({ source:serverUrl, delay: 30, autoFocus: true });
+ $input.autocomplete({ source:serverUrl, delay: 30 });
 });
 </script>
 </body>
