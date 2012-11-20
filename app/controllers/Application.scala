@@ -1,133 +1,111 @@
 package controllers
 
-import play.api._
-
-import akka.actor.ActorSystem
-import akka.actor.Props
-import akka.actor.actorRef2Scala
-import akka.util.duration.intToDurationInt
 import play.api.libs.json.Json._
-import play.api.libs.json._
+
 import play.api.mvc.Action
 import play.api.mvc.Controller
 
-import scala.collection.JavaConversions._
-
-import scrapers._
 import models._
 import views._
 
-import org.jsoup.HttpStatusException
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Element
-import org.postgresql.util.PSQLException
-import java.lang.ExceptionInInitializerError
-import java.net.SocketTimeoutException
 import java.util.Date
-import java.util.Calendar
 
-import scala.Option.option2Iterable
-import scala.collection.JavaConversions.asScalaBuffer
-import scala.util.control.Exception.catching
 
 object Application extends Controller {
 
-  val gall = Game.storeAllPrice("XCOM Enemy Unknown")
-
-  def mostRecent(g: List[(Game, Price)]): List[(Game, Price)] = {
-    
-    val dates = g map(_._2.dateRecorded.getTime)
-    val recentGames = g filter(_._2.dateRecorded.getTime == dates.max)
-    recentGames.groupBy(_._1.store).mapValues(x => x.sortBy(y => -y._2.id.get)).map(_._2.head).toList
-
-  }
-
-  mostRecent(gall).map(x => println(x)) 
-
-
   type datePrice = (java.util.Date, Double, Boolean)
 
+  // Slightly shorter store names
   val nameMap = Map("GreenmanGaming" -> "Greenman",
     "Steam" -> "Steam",
     "DlGamer" -> "DlGamer",
     "GamersGate" -> "GamersG",
     "GameStop" -> "GameStop")
 
+  // The most recent game prices from the stores for the BAR CHART
+  def mostRecent(gp: List[GwithP]): List[GwithP] = {
 
-  def priceData(name: String) = {
-    val gamesP = Game.storePrice(name)
-    val games = gamesP map (_._1)
+    // The dates on which prices were recorded
+    val dates = gp map(_.p.dateRecorded.getTime)
+    // The most recent dates
+    val recentGames = gp filter(_.p.dateRecorded.getTime == dates.max)
+    // If more than one price for the most recent date, pick the most recent price
+    val rg = recentGames.groupBy(_.g.store).mapValues(_.sortBy(y => -y.p.id.get)).map(_._2.head).toList
 
-    Action {
-      Ok(toJson(
-        games map { x =>
-          toJson(
-            Map("name" -> toJson(x.store),
-              "data" -> idPrices(x.id.get)))
-        }))
+    // Order from lowest to highest price and use short store names
+    rg.sortBy(_.p.priceOnX).map {
+      x => GwithP(x.g.shortStoreName(nameMap), x.p)
     }
-  }
-
-  def expandDates(pricelist: List[datePrice]) = {
-
-    val ttest = pricelist groupBy (x => x._1) mapValues (x => addTimes(x))
-    ttest.values.toList.flatten
 
   }
 
-  def addTimes(dateList: List[datePrice]): List[datePrice] = {
+  // Make the price history data for the line graph
+  def priceHist(ph: List[GwithP]): String = {
 
-    val increment = 1000 * 60 * 60 * 24 / dateList.length - 1
+    // Group by store and apply date adjustment to separate similar dates
+    val storeGroup = ph.groupBy(_.g.store).mapValues(x => padDates(x))
 
-    def setTimeInc(datep: datePrice, timeMillis: Long): datePrice = {
-      val cal: Calendar = Calendar.getInstance()
-      cal.setTime(datep._1)
-      val curMillis = cal.getTimeInMillis()
-      cal.setTimeInMillis(curMillis + timeMillis)
-      datep._1.setTime(cal.getTimeInMillis)
+    // Sort dates from old to new
+    val s = storeGroup.mapValues(_.sortBy(y => y.p.dateRecorded))
 
-      datep
-    }
+    // Convert data into json format for the graph
+    val priceJson = s.map(x =>
+     toJson(Map("name" -> toJson(x._1),
+      "data" -> toJson(x._2.map(y => toJson(Map("x" -> toJson(y.p.dateRecorded.getTime),
+       "y" -> toJson(y.p.priceOnX)))))))
+     )
 
-    def recTime(dateList: List[datePrice], acc: List[datePrice], timeinc: Long): List[datePrice] = {
-      if (dateList.isEmpty) acc
-      else {
-        setTimeInc(dateList.head, timeinc)
-        recTime(dateList.tail, dateList.head :: acc, timeinc + increment)
+    // Convert to json and then to a string for preserving double quotes
+    toJson(priceJson.toList).toString
+
+  }
+
+  // Function for padding/separating same dates
+  // If price has changed x times in one day, assume initial price is recorded at
+  // 00:00 hours and add 24/x until midnight
+  def padDates(gp: List[GwithP]) = {
+
+    def addHoursToDate(gl: List[GwithP]) = {
+      val increment = 1000 * 60 * 60 * 24 / gl.length - 1
+
+      def hoursAdder(d: List[GwithP], acc: List[GwithP], timeinc: Long): List[GwithP] = {
+        if (d.isEmpty) acc
+        else {
+          val gnp: GwithP = GwithP(d.head.g, d.head.p.setTimeInc(timeinc))
+          hoursAdder(d.tail, gnp :: acc, timeinc + increment)
+        }
       }
+      hoursAdder(gl, List(), 0).reverse
+
     }
 
-    recTime(dateList, List(), 0).reverse
+    // Group list by dates and order by when the price was entered into db using id
+    val dateMap = gp.groupBy(x => x.p.dateRecorded).mapValues(y => y.sortBy(z => z.p.id.get))
+    // Apply the padding function and return a flat list
+    dateMap.mapValues(x => addHoursToDate(x)).values.toList.flatten
 
   }
 
-  def idPrices(id: Long) = {
-    val sale = routes.Assets.at("images/sale.png").toString
-    val price = expandDates(Price.priceById(id)) sortBy (_._1) map {
-      case (a, b, true) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),
-        "marker" -> toJson(Map("symbol" -> toJson("url(" + sale + ")"))))
-      case (a, b, false) => Map("x" -> toJson(a.getTime), "y" -> toJson(b),
-        "marker" -> JsNull)
-    }
-    toJson(price)
-  }
 
-  def gameQ(name: String) = Action {
-    if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
+  // Search listings page
+  def gameQ(name: String) = Action { Ok("Hello") }
+  /*  if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
     else if (HelperFunctions.listOrSingle(name) == 1) {
       Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
     }
     else Ok(html.listgame(Game.findByName(name)))
-  }
+    }*/
 
+  // Index/homepage
   val Home = Redirect(routes.Application.index)
 
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
 
+  // Main game results/graph page
   def gameP(name: String) = Action {
-    Ok(html.game(Game.storePrice(name).sortBy(y => y._2.priceOnX).map {
-      case (x, y) => x.shortStoreName(nameMap) -> y
-    }, PriceStats.game(name).map(_.shortStoreName(nameMap))))
+    val g = Game.storeAllPrice(name)
+
+    Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(name).map(_.shortStoreName(nameMap))))
   }
 
   // Manually matching duplicate names

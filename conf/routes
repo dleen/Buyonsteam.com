@@ -6,7 +6,6 @@
 GET	/						controllers.Application.index
 
 GET /game					controllers.Application.gameP(g ?= "")
-GET /pricedata				controllers.Application.priceData(name: String)
 
 GET /manmatch				controllers.Application.manualMatching(p: Int ?= 0)
 

@@ -56,6 +56,19 @@ case class DataCleanup(sim: Double, n1: String, id1: Int, url1: String,
 
 object DataCleanup {
 
+  val simple = {
+    get[Double]("a") ~
+    get[String]("b") ~
+    get[Int]("c") ~
+    get[String]("d") ~
+    get[String]("e") ~
+    get[Int]("f") ~
+    get[String]("g") map {
+      case sim ~ n1 ~ url1 ~ id1 ~ n2 ~ id2 ~ url2 =>
+      DataCleanup(sim, n1, url1, id1, n2, id2, url2)
+    }
+  }
+
   def matchExactNames = {
     DB.withConnection { implicit connection =>
       SQL(
@@ -87,18 +100,7 @@ object DataCleanup {
     }
   }
 
-  val simple = {
-    get[Double]("a") ~
-    get[String]("b") ~
-    get[Int]("c") ~
-    get[String]("d") ~
-    get[String]("e") ~
-    get[Int]("f") ~
-    get[String]("g") map {
-      case sim ~ n1 ~ url1 ~ id1 ~ n2 ~ id2 ~ url2 =>
-      DataCleanup(sim, n1, url1, id1, n2, id2, url2)
-    }
-  }
+
 
   def matchManually(page: Int = 0, pageSize: Int = 10) = {
 
@@ -124,9 +126,8 @@ object DataCleanup {
       }
     }
 
-    Page(matchedPairs map { case (a, b) => a },
-      page, offset,
-      matchedPairs map { case (a, b) => b } head)
+    Page(matchedPairs.map(_._1), page, offset,matchedPairs.map(_._2).head)
+    
   }
 
   def equateIds(id1: Int, id2: Int) = {

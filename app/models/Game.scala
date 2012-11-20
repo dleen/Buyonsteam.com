@@ -35,39 +35,20 @@ object Game {
   }
 
   val withPrice = Game.simple ~ Price.simple map {
-  	case game ~ price => (game, price)
+  	case game ~ price => GwithP(game, price)
   }
 
-
-  def storePrice(name: String) = {
-  	DB.withConnection { implicit connection =>
-  		SQL("""
-  			select distinct on(s1) * from (
-  				select * from
-  				(select store as s1, * from scraped_games
-  					where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
-  						scraped_games where lower(name) = lower({name})) 
-  		) as test1
-  		left join
-  		(select * from price_history) as test2
-  		on test1.id = test2.game_id
-  		) as test3
-  		order by s1, date_recorded desc
-  		""").on('name -> name).as(withPrice *)
-  	}
-  }
-
-    def storeAllPrice(name: String) = {
+  def storeAllPrice(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
-          select * from
-          (select * from scraped_games
-            where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
-              scraped_games where lower(name) = lower({name})) 
+        select * from
+        (select * from scraped_games
+          where scraped_games.unq_game_id = (select distinct on (unq_game_id) unq_game_id from 
+            scraped_games where lower(name) = lower({name})) 
       ) as test1
       left join
-       price_history on test1.id = game_id
-       order by date_recorded desc
+      price_history on test1.id = game_id
+      order by date_recorded desc
       """).on('name -> name).as(withPrice *)
     }
   }
@@ -149,15 +130,6 @@ object Game {
   			'store -> that.store,
   			'store_url -> that.storeUrl,
   			'img_url -> that.imgUrl).executeInsert()
-  		}
-  	}
-
-  	def storeById(id: Int) = {
-  		DB.withConnection { implicit connection =>
-  			SQL(""" 
-  				select store from scraped_games where id = {id}
-  				order by store
-  				""").on('id -> id).as(scalar[String].single)
   		}
   	}
 

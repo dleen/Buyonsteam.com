@@ -1,4 +1,4 @@
-@(gamePrices: List[(Game, Price)], priceStats: Option[PriceStats])
+@(gamePrices: List[GwithP], pd: String, priceStats: Option[PriceStats])
 
 @import play.api.libs.json.Json._
 
@@ -22,7 +22,7 @@
 
 		<div class="row-fluid">
 			<div id="my-hero">
-				<h1>@{if (gamePrices.isEmpty) "No Name" else gamePrices.head._1.name }</h1>
+				<h1>@{if (gamePrices.isEmpty) "No Name" else gamePrices.head.g.name }</h1>
 			</div>
 			<div id="small-search">
 				<form class="form-search" action="@routes.Application.gameP()">
@@ -92,11 +92,10 @@
 	<script src="@routes.Assets.at("javascripts/game/pricechart.js")"></script>
 	<script src="@routes.Assets.at("javascripts/game/barchart.js")"></script>
 	<script type="text/javascript">
-		var data  = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(Map("y" -> toJson(x._2.priceOnX), "url" -> toJson(x._1.storeUrl))))).toString)');
-		var names = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(x._1.store))).toString)');
-		var linedata = $.getJSON("@routes.Application.priceData(gamePrices.head._1.name)", function(ldata) {
+		var data  = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(Map("y" -> toJson(x.p.priceOnX), "url" -> toJson(x.g.storeUrl))))).toString)');
+		var names = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(x.g.store))).toString)');
+		var ldata = jQuery.parseJSON('@Html(pd)');
 			pricechart(ldata);
-			});
 	</script>
 
 </body>

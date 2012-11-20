@@ -1,6 +1,7 @@
 package models
 
 import java.util.Date
+import java.util.Calendar
 
 import play.api.db._
 import play.api.Play.current
@@ -13,7 +14,19 @@ case class Price(id: Pk[Long] = NotAssigned,
 	priceOnX: Double,
 	onSale: Boolean,
 	dateRecorded: Date,
-	gameId: Int)
+	gameId: Int) {
+
+  def setTimeInc(timeMillis: Long): Price = {
+    val cal: Calendar = Calendar.getInstance()
+    cal.setTime(dateRecorded)
+    val curMillis = cal.getTimeInMillis()
+    cal.setTimeInMillis(curMillis + timeMillis)
+    val d = new Date(cal.getTimeInMillis)
+
+    Price(id, priceOnX, onSale, d, gameId)
+  }
+
+}
 
 object Price {
 
@@ -26,14 +39,6 @@ object Price {
   	get[Int]("price_history.game_id") map {
   		case id ~ priceOnX ~ onSale ~ dateRecorded ~ gameId =>
   		Price(id, priceOnX, onSale, dateRecorded, gameId)
-  	}
-  }
-
-  // Find by gameId
-  def findByGameId(gameId: Long): List[Price] = {
-  	DB.withConnection { implicit connection =>
-  		SQL("select * from price_history where game_id = {game_id}")
-  		.on('game_id -> gameId).as(Price.simple *)
   	}
   }
 
@@ -56,16 +61,4 @@ object Price {
   	}
   }
 
-  def priceById(id: Long) = {
-  	DB.withConnection { implicit connection =>
-  		SQL("""     
-  			select date_recorded, price_on_x, on_sale from price_history where game_id = {id}
-  			order by date_recorded asc, id asc
-  			""").on('id -> id).as(get[Date]("date_recorded") ~
-  			get[Double]("price_on_x") ~ 
-  			get[Boolean]("on_sale") *).map {
-  				case a ~ b ~ c => (a, b, c)
-  			}
-  		}
-  	}
-  }
+}
