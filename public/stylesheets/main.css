@@ -108,3 +108,19 @@ img.center {
   background-color: rgb(255,171,155);
 }
 
+#samplem1 {
+  background-color: grey;
+  height: 1500px;
+}
+
+.affix {
+  background-color: black;
+}
+
+.affix-top {
+  background-color: black;
+}
+
+body {
+  background-color: darkgrey;
+}

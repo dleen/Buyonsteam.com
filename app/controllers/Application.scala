@@ -12,6 +12,8 @@ import java.util.Date
 
 
 object Application extends Controller {
+  
+  def sample = Action{ Ok(html.sample()) }
 
   type datePrice = (java.util.Date, Double, Boolean)
 
@@ -90,7 +92,7 @@ object Application extends Controller {
   // Search listings page
   def gameQ(name: String) = {
     if (HelperFunctions.listOrSingle(name) == 0) Action { Ok("Nothing found") }
-    else if (HelperFunctions.listOrSingle(name) == 1) Action { gameP(name) }
+    else if (HelperFunctions.listOrSingle(name) == 1 && !Game.storeAllPrice(name).isEmpty) Action { gameP(name) }
     else Action{ Ok(html.listgame(Game.findByName(name))) }
     }
 
@@ -103,7 +105,7 @@ object Application extends Controller {
   def gameP(name: String) = Action {
     val g = Game.storeAllPrice(name)
 
-    if (g.isEmpty) gameQ(name)
+    if (g.isEmpty) Ok("Error")
     else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(name).map(_.shortStoreName(nameMap))))
   }
 
