@@ -88,13 +88,11 @@ object Application extends Controller {
 
 
   // Search listings page
-  def gameQ(name: String) = Action { Ok("Hello") }
-  /*  if (HelperFunctions.listOrSingle(name) == 0) Ok("Nothing found")
-    else if (HelperFunctions.listOrSingle(name) == 1) {
-      Ok(html.game(Game.storePrice(name), PriceStats.game(name)))
+  def gameQ(name: String) = {
+    if (HelperFunctions.listOrSingle(name) == 0) Action { Ok("Nothing found") }
+    else if (HelperFunctions.listOrSingle(name) == 1) Action { gameP(name) }
+    else Action{ Ok(html.listgame(Game.findByName(name))) }
     }
-    else Ok(html.listgame(Game.findByName(name)))
-    }*/
 
   // Index/homepage
   val Home = Redirect(routes.Application.index)
@@ -105,12 +103,13 @@ object Application extends Controller {
   def gameP(name: String) = Action {
     val g = Game.storeAllPrice(name)
 
-    Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(name).map(_.shortStoreName(nameMap))))
+    if (g.isEmpty) gameQ(name)
+    else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(name).map(_.shortStoreName(nameMap))))
   }
 
   // Manually matching duplicate names
   def manualMatching(page: Int) = Action {
-    Ok(html.manmatch(DataCleanup.matchManually(page = page)))
+    Ok(html.manmatch(DataCleanup.matchManually(page)))
   }
 
   def matchem(id1: Int, id2: Int, page: Int) = Action {
