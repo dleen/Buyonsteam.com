@@ -25,7 +25,7 @@
 				<h1>@{if (gamePrices.isEmpty) "No Name" else gamePrices.head.g.name }</h1>
 			</div>
 			<div id="small-search">
-				<form class="form-search" action="@routes.Application.gameP()">
+				<form class="form-search" action="@routes.Application.gameR()">
 					<input type="search" id="searchbox" class="input-large autocomplete" name="g" placeholder="Search for a game..." data-url="@{routes.Application.autocompleteSearch()}" autocomplete="off" spellcheck="false">
 				</form>
 			</div>
@@ -58,7 +58,7 @@
 							<td>@stats.smin</td>
 							<td>@stats.minD</td>
 						</tr>
-						<tr id="my-err">
+						<tr id="my-err"> 
 							<td>Highest</td>
 							<td>$@nicePrice(stats.max)</td>
 							<td>@stats.smax</td>

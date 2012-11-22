@@ -111,16 +111,25 @@ img.center {
 #samplem1 {
   background-color: grey;
   height: 1500px;
+  padding: 0px;
 }
 
+#sidenav {
+  height: 100%;
+  background-color: black;
+}
+
+#arfarf {
+    height: 100%;
+
+  background-color: black;
+}
+
+@media (max-width: 767px) {
 .affix {
   background-color: black;
+  position: static;
+  width: auto;
+}
 }
 
-.affix-top {
-  background-color: black;
-}
-
-body {
-  background-color: darkgrey;
-}

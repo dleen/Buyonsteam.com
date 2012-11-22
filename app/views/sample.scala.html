@@ -1,32 +1,56 @@
+@(gamePrices: List[GwithP], pd: String, priceStats: Option[PriceStats])
+
+@import play.api.libs.json.Json._
+
+@import viewhelpers.ViewHelp._
+
 <!DOCTYPE html>
 
 <html lang="en">
 <head>
 	<title>Buy On Steam</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/bootstrap.min.css")">
 	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/bootstrap-responsive.css")">
 	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/jquery-ui-1.9.1.custom.css")">
 	<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
 	<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
-
 </head>
 <body>
 
 	<div class="container-fluid" id="samplem1">
 		<div class="row-fluid">
-			<div class="span4">
-				<div data-spy="affix" data-offset-top="60" class="well"></div>
+			<div class="span3" id="arfarf">
+				<div data-spy="affix" id="sidenav">
+					<div>
+						<h4>Hello there!</h4>
+					</div>
+				</div>
 			</div>
-
-			<div class="span8">
+			<div class="span9">
+				<div id="chart-cont">
+				</div>
 			</div>
 		</div>
 	</div>
 
 	<script src="http://code.jquery.com/jquery-latest.min.js"></script> 
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/modules/exporting.js"></script>
 	<script src="@routes.Assets.at("javascripts/jquery-ui-1.9.1.custom.min.js")"></script> 
 	<script src="@routes.Assets.at("javascripts/bootstrap.min.js")"></script> 
+	<script src="@routes.Assets.at("javascripts/underscore-min.js")"></script> 
+
+	<script src="@routes.Assets.at("javascripts/rainbowvis.js")"></script>
+	<script src="@routes.Assets.at("javascripts/game/auto.js")"></script>
+	<script src="@routes.Assets.at("javascripts/game/pricechart.js")"></script>
+	<script src="@routes.Assets.at("javascripts/game/barchart.js")"></script>
+	<script type="text/javascript">
+		var data  = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(Map("y" -> toJson(x.p.priceOnX), "url" -> toJson(x.g.storeUrl))))).toString)');
+		var names = jQuery.parseJSON('@Html(toJson(gamePrices.map(x => toJson(x.g.store))).toString)');
+		var ldata = jQuery.parseJSON('@Html(pd)');
+			pricechart(ldata);
+	</script>
 
 </body>
 </html>

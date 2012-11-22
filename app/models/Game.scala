@@ -52,6 +52,20 @@ object Game {
       """).on('name -> name).as(withPrice *)
     }
   }
+  
+    def storeAllPriceId(id: Int) = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+        select * from
+        (select * from scraped_games
+          where scraped_games.unq_game_id = {id}
+      ) as test1
+      left join
+      price_history on test1.id = game_id
+      order by date_recorded desc
+      """).on('id -> id).as(withPrice *)
+    }
+  }
 
   // Retrieve a game by id
   def findById(id: Long): Option[Game] = {

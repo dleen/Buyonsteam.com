@@ -10,12 +10,31 @@ import views._
 
 import java.util.Date
 
-
 object Application extends Controller {
-  
-  def sample = Action{ Ok(html.sample()) }
 
-  type datePrice = (java.util.Date, Double, Boolean)
+  // Route: game
+  def gameR(name: String) = gameQ(name)
+
+  // Search listings page. Route: /:name
+  def gameQ(name: String) = {
+    val avail = SearchResult.singleOrList(name)
+    val exact = avail filter (x => (x.sim == 1.0 || x.cnt == 1))
+
+    if (avail.isEmpty) Action { Ok("Nothing found gameQ") }
+    else if (exact.length == 1) {
+      Action {
+        val g = Game.storeAllPrice(exact.head.g.g.name)
+
+        if (g.isEmpty) Ok("Error")
+        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap))))
+      }
+    } else Action { Ok(html.listgame(avail sortBy(x => -x.sim))) }
+  }
+
+  def sample(name: String) = {
+    val g = Game.storeAllPrice(name)
+    Action { Ok(html.sample(mostRecent(g), priceHist(g), PriceStats.game(name).map(_.shortStoreName(nameMap)))) }
+  }
 
   // Slightly shorter store names
   val nameMap = Map("GreenmanGaming" -> "Greenman",
@@ -28,9 +47,9 @@ object Application extends Controller {
   def mostRecent(gp: List[GwithP]): List[GwithP] = {
 
     // The dates on which prices were recorded
-    val dates = gp map(_.p.dateRecorded.getTime)
+    val dates = gp map (_.p.dateRecorded.getTime)
     // The most recent dates
-    val recentGames = gp filter(_.p.dateRecorded.getTime == dates.max)
+    val recentGames = gp filter (_.p.dateRecorded.getTime == dates.max)
     // If more than one price for the most recent date, pick the most recent price
     val rg = recentGames.groupBy(_.g.store).mapValues(_.sortBy(y => -y.p.id.get)).map(_._2.head).toList
 
@@ -52,10 +71,9 @@ object Application extends Controller {
 
     // Convert data into json format for the graph
     val priceJson = s.map(x =>
-     toJson(Map("name" -> toJson(x._1),
-      "data" -> toJson(x._2.map(y => toJson(Map("x" -> toJson(y.p.dateRecorded.getTime),
-       "y" -> toJson(y.p.priceOnX)))))))
-     )
+      toJson(Map("name" -> toJson(x._1),
+        "data" -> toJson(x._2.map(y => toJson(Map("x" -> toJson(y.p.dateRecorded.getTime),
+          "y" -> toJson(y.p.priceOnX))))))))
 
     // Convert to json and then to a string for preserving double quotes
     toJson(priceJson.toList).toString
@@ -88,20 +106,12 @@ object Application extends Controller {
 
   }
 
-
-  // Search listings page
-  def gameQ(name: String) = {
-    if (HelperFunctions.listOrSingle(name) == 0) Action { Ok("Nothing found") }
-    else if (HelperFunctions.listOrSingle(name) == 1 && !Game.storeAllPrice(name).isEmpty) Action { gameP(name) }
-    else Action{ Ok(html.listgame(Game.findByName(name))) }
-    }
-
   // Index/homepage
   val Home = Redirect(routes.Application.index)
 
   def index = Action { Ok(html.main(HelperFunctions.recommendGamesA)) }
 
-  // Main game results/graph page
+  // Main game results/graph page. Route: gamex
   def gameP(name: String) = Action {
     val g = Game.storeAllPrice(name)
 

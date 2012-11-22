@@ -12,7 +12,6 @@ import models.Game._
 import models.Price._
 import models.SteamGame._
 
-
 case class GwithP(g: Game, p: Price)
 
 case class GSwP(sg: SteamGame, gwp: GwithP)
@@ -50,7 +49,6 @@ case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
   lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)
 }
 
-
 case class DataCleanup(sim: Double, n1: String, id1: Int, url1: String,
   n2: String, id2: Int, url2: String)
 
@@ -58,15 +56,15 @@ object DataCleanup {
 
   val simple = {
     get[Double]("a") ~
-    get[String]("b") ~
-    get[Int]("c") ~
-    get[String]("d") ~
-    get[String]("e") ~
-    get[Int]("f") ~
-    get[String]("g") map {
-      case sim ~ n1 ~ url1 ~ id1 ~ n2 ~ id2 ~ url2 =>
-      DataCleanup(sim, n1, url1, id1, n2, id2, url2)
-    }
+      get[String]("b") ~
+      get[Int]("c") ~
+      get[String]("d") ~
+      get[String]("e") ~
+      get[Int]("f") ~
+      get[String]("g") map {
+        case sim ~ n1 ~ url1 ~ id1 ~ n2 ~ id2 ~ url2 =>
+          DataCleanup(sim, n1, url1, id1, n2, id2, url2)
+      }
   }
 
   def matchExactNames = {
@@ -100,8 +98,6 @@ object DataCleanup {
     }
   }
 
-
-
   def matchManually(page: Int = 0, pageSize: Int = 10) = {
 
     val offset = pageSize * page
@@ -121,13 +117,13 @@ object DataCleanup {
       order by a desc, b, c
       limit {pagesize} offset {offset}
       """).on('pagesize -> pageSize, 'offset -> offset)
-      .as(DataCleanup.simple ~ get[Long]("full_count") *) map {
-        case a ~ b => (a, b)
-      }
+        .as(DataCleanup.simple ~ get[Long]("full_count") *) map {
+          case a ~ b => (a, b)
+        }
     }
 
-    Page(matchedPairs.map(_._1), page, offset,matchedPairs.map(_._2).head)
-    
+    Page(matchedPairs.map(_._1), page, offset, matchedPairs.map(_._2).head)
+
   }
 
   def equateIds(id1: Int, id2: Int) = {
@@ -157,7 +153,8 @@ object HelperFunctions {
       where date_recorded = 'today'
       order by unq_game_id, p1.id desc) as sg
       where on_sale = true
-      order by meta_critic desc
+      order by meta_critic desc nulls last
+      limit 20
       """).as(withSteamPrice *)
     }
   }
@@ -174,22 +171,22 @@ object HelperFunctions {
           from scraped_games
           where name % {name}) as temp
       """).on('name -> name)
-      .as(scalar[Long].single).toInt
+        .as(scalar[Long].single).toInt
     }
   }
 
 }
 
-case class PriceStats(maxD: Date, 
-  max: Double, 
-  smax: String, 
-  minD: Date, 
-  min: Double, 
-  smin: String, 
+case class PriceStats(maxD: Date,
+  max: Double,
+  smax: String,
+  minD: Date,
+  min: Double,
+  smin: String,
   avg: Double) {
 
   def shortStoreName(m: Map[String, String]): PriceStats = {
-    PriceStats(maxD, max, m.getOrElse(smax, ""), minD, min, 
+    PriceStats(maxD, max, m.getOrElse(smax, ""), minD, min,
       m.getOrElse(smin, ""), avg)
   }
 }
@@ -198,15 +195,15 @@ object PriceStats {
 
   val simple = {
     get[Date]("d1") ~
-    get[Double]("max") ~
-    get[String]("s1") ~
-    get[Date]("d2") ~
-    get[Double]("min") ~
-    get[String]("s2") ~
-    get[Double]("avg") map {
-      case maxD ~ max ~ s1 ~ minD ~ min ~ s2 ~ avg =>
-      PriceStats(maxD, max, s1, minD, min, s2, avg)
-    }
+      get[Double]("max") ~
+      get[String]("s1") ~
+      get[Date]("d2") ~
+      get[Double]("min") ~
+      get[String]("s2") ~
+      get[Double]("avg") map {
+        case maxD ~ max ~ s1 ~ minD ~ min ~ s2 ~ avg =>
+          PriceStats(maxD, max, s1, minD, min, s2, avg)
+      }
   }
 
   def game(name: String): Option[PriceStats] = {
@@ -229,6 +226,37 @@ object PriceStats {
       limit 1
       """).on('name -> name).as(simple.singleOpt)
 
+    }
+  }
+
+}
+
+case class SearchResult(g: GwithP, sim: Double, cnt: Long)
+
+object SearchResult {
+
+  val simple = {
+    get[Double]("similarity") ~
+      get[Long]("c1") map {
+        case a ~ b => (a, b)
+      }
+  }
+
+  val withCount = Game.withPrice ~ simple map {
+    case a ~ b => SearchResult(a, b._1, b._2)
+  }
+
+  def singleOrList(name: String): List[SearchResult] = {
+    DB.withConnection { implicit connection =>
+      SQL("""
+    		  select *, cast(similarity(name,{name}) as double precision), count(unq_game_id) over() as c1 from (
+    		  select distinct on(unq_game_id) * from (
+    		  select * from scraped_games
+    		  left join price_history on game_id = unq_game_id
+    		  where name % {name}) as s1
+    		  order by unq_game_id, date_recorded desc) as s2
+    		  order by similarity desc
+      """).on('name -> name).as(withCount *)
     }
   }
 
