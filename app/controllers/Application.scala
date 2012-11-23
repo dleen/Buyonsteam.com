@@ -17,7 +17,7 @@ object Application extends Controller {
 
   // Search listings page. Route: /:name
   def gameQ(name: String) = {
-    val avail = SearchResult.singleOrList(name)
+    val avail = SearchResult.singleOrList(name) sortBy(x => -x.sim)
     val exact = avail filter (x => (x.sim == 1.0 || x.cnt == 1))
 
     if (avail.isEmpty) Action { Ok("Nothing found gameQ") }
@@ -26,9 +26,14 @@ object Application extends Controller {
         val g = Game.storeAllPrice(exact.head.g.g.name)
 
         if (g.isEmpty) Ok("Error")
-        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap)), avail))
+        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap)), avail.tail))
       }
-    } else Action { Ok(html.list(avail sortBy(x => -x.sim))) }
+    } else Action {
+        val g = Game.storeAllPrice(avail.head.g.g.name)
+
+        if (g.isEmpty) Ok("Error")
+        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(avail.head.g.g.name).map(_.shortStoreName(nameMap)), avail.tail))
+      }
   }
 
   def sample(name: String) = {
@@ -125,8 +130,8 @@ object Application extends Controller {
   }
 
   def matchem(id1: Int, id2: Int, page: Int) = Action {
-    DataCleanup.equateIds(id1, id2)
-    Redirect(routes.Application.manualMatching(page))
+    Ok(DataCleanup.equateIds(id1, id2))
+    //Redirect(routes.Application.manualMatching(page))
   }
 
   // Autocomplete
