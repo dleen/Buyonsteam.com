@@ -26,9 +26,9 @@ object Application extends Controller {
         val g = Game.storeAllPrice(exact.head.g.g.name)
 
         if (g.isEmpty) Ok("Error")
-        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap))))
+        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap)), avail))
       }
-    } else Action { Ok(html.listgame(avail sortBy(x => -x.sim))) }
+    } else Action { Ok(html.list(avail sortBy(x => -x.sim))) }
   }
 
   def sample(name: String) = {
