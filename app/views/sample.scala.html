@@ -18,16 +18,51 @@
 </head>
 <body>
 
-	<div class="container-fluid" id="samplem1">
-		<div class="row-fluid">
-			<div class="span3" id="arfarf">
-				<div data-spy="affix" id="sidenav">
-					<div>
-						<h4>Hello there!</h4>
-					</div>
+	<div class="container-fluid" id="full-width">
+		<div class="row-fluid" >
+			<div class="span5">
+				<div class="sidebar-nav sidebar-nav-fixed">
+					<div id="stats-div">
+						<div><h2>This is a really long name test!</h2></div>
+					<hr>
+					<div class="mywell" id="barchart-cont"></div>
+					<hr>
+					<div class="mywell">
+				@priceStats.map{ stats =>
+				<table class="table" id="my-table">
+					<thead>
+						<tr>
+							<th colspan="2"><h4>Price Stats</h4></th>
+							<th><h4>Store</h4></th>
+							<th><h4>When</h4></th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr id="my-suc">
+							<td>Lowest</td>
+							<td>$@nicePrice(stats.min)</td>
+							<td>@stats.smin</td>
+							<td>@stats.minD</td>
+						</tr>
+						<tr id="my-err"> 
+							<td>Highest</td>
+							<td>$@nicePrice(stats.max)</td>
+							<td>@stats.smax</td>
+							<td>@stats.maxD</td>
+						</tr>
+						<tr id="my-avg">
+							<td>Average</td>
+							<td>$@nicePrice(stats.avg)</td>
+							<td></td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>}.getOrElse(<div>N/A</div>)					
+			</div>
 				</div>
 			</div>
-			<div class="span9">
+			</div>
+			<div class="span7">
 				<div id="chart-cont">
 				</div>
 			</div>

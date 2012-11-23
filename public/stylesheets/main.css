@@ -19,7 +19,6 @@
 .container-narrow {
   margin: 0 auto;
   max-width: 700px;
-  background-color: white;
 }
 .container-narrow > hr {
   margin: 10px 0;
@@ -108,28 +107,65 @@ img.center {
   background-color: rgb(255,171,155);
 }
 
-#samplem1 {
-  background-color: grey;
-  height: 1500px;
-  padding: 0px;
+.sidebar-nav {
+  padding: 0;
+  margin: 0;
+
 }
 
-#sidenav {
+.sidebar-nav-fixed {
+  position: fixed;
+  top: 0px;
+  width: 40%;
+  background-color: gray;
   height: 100%;
-  background-color: black;
-}
-
-#arfarf {
-    height: 100%;
-
-  background-color: black;
+  border: 0;
+  border-right: 0px solid black;
 }
 
 @media (max-width: 767px) {
-.affix {
-  background-color: black;
-  position: static;
-  width: auto;
-}
+  .sidebar-nav-fixed {
+    background-color: gray;
+    position: static;
+    width: auto;
+  }
 }
 
+@media (max-width: 979px) {
+  .sidebar-nav-fixed {
+    top: 0px;
+  }
+}
+
+#main-high {
+  height: 1500px;
+}
+
+body {
+  background-color: #f9fafc;
+}
+
+#full-width {
+  padding-left: 0;
+}
+
+#stats-div {
+  margin: 10px auto;
+  padding: 5px;
+  max-width: 400px;
+
+}
+
+#my-table th {
+ /* color: #f9fafc; */
+ padding-bottom: 0px;
+}
+
+#stats-div > hr {
+  border: 1px solid #797979;
+}
+
+#stats-div h2 {
+  color: #f9fafc;
+  text-align: center;
+}
