@@ -53,7 +53,6 @@ object Application extends Controller {
 
   // Search listings page. Route: /:name
   def gameQ(name: String) = {
-    println(name)
     val avail = SearchResult.singleOrList(name) sortBy (x => -x.sim)
     val exact = avail filter (x => (x.sim == 1.0 || x.cnt == 1))
 
