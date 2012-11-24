@@ -16,18 +16,20 @@ import views._
 import java.util.Date
 
 object Application extends Controller {
+  
+  // Comparison graph of deals across stores
+  def compData(sc: List[StoreComparison]) = {
+    val sg = sc groupBy (_.store) mapValues (x => x.sortBy(_.dateRecorded))
+    val s2 = sg.map(x =>
+      toJson(Map("name" -> toJson(x._1), 
+          "data" -> toJson(x._2.map(y => 
+            toJson(Map("x" -> toJson(y.dateRecorded.getTime),
+                "y" -> toJson(y.count)))))))).toList
+    
+      toJson(s2).toString          
+  }
 
-  val scomp = StoreComparison.timeLine
-
-  val storec = scomp groupBy (x => x.store)
-  val storesort = storec mapValues (x => x.sortBy(y => y.dateRecorded))
-  val s5 = storec.mapValues(x => x.map(y => y.dateRecorded.getTime)).head._2
-  val s1 = storesort mapValues (x => x.map(y => y.count))
-  val s2 = storesort.map(x => toJson(Map("name" -> toJson(x._1), "data" -> toJson(x._2.map(y => toJson(Map("x" -> toJson(y.dateRecorded.getTime), "y" -> toJson(y.count)))))))).toList
-  val s3 = toJson(s2).toString
-  println(s3)
-
-  def sc = Action { Ok(html.storecomp(s3)) }
+  def sc = Action { Ok(html.storecomp(compData(StoreComparison.timeLine))) }
 
   // Sample layout game page. Temporary.
   def sample(name: String) = {
@@ -51,6 +53,7 @@ object Application extends Controller {
 
   // Search listings page. Route: /:name
   def gameQ(name: String) = {
+    println(name)
     val avail = SearchResult.singleOrList(name) sortBy (x => -x.sim)
     val exact = avail filter (x => (x.sim == 1.0 || x.cnt == 1))
 

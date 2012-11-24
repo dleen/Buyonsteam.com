@@ -42,10 +42,7 @@ $(function () {
                 type: 'area'
             },
             title: {
-                text: 'Historic and Estimated Worldwide Population Distribution by Region'
-            },
-            subtitle: {
-                text: 'Source: Wikipedia.org'
+                text: 'Where can the best prices be found?'
             },
             xAxis: {
                 type: 'datetime',
@@ -63,7 +60,7 @@ $(function () {
                 formatter: function() {
                         return ''+
                         this.x +': '+ Highcharts.numberFormat(this.percentage, 1) +'% ('+
-                        Highcharts.numberFormat(this.y, 0, ',') +' millions)';
+                        Highcharts.numberFormat(this.y, 0, ',');
                 }
             },
             plotOptions: {
