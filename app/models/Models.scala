@@ -261,3 +261,39 @@ object SearchResult {
   }
 
 }
+
+case class StoreComparison(store: String, dateRecorded: Date, count: Long)
+
+object StoreComparison {
+  
+    val simple = {
+      get[String]("store") ~
+    get[Date]("date_recorded") ~
+      get[Long]("count") map {
+        case store ~ dateRecorded ~ count => 
+        	StoreComparison(store, dateRecorded, count)
+      }
+  }
+  
+  def timeLine = {
+    DB.withConnection { implicit connection =>
+    SQL("""
+    		with jjj as (
+    		select id,name,store,unq_game_id,price_on_x,date_recorded from (
+    		select * from scraped_games as g1
+    		join (select price_on_x, date_recorded, game_id from price_history) p1 on p1.game_id = g1.id
+    		where unq_game_id  in (
+    		select unq_game_id from (
+    		select unq_game_id, count(unq_game_id) as t1 from scraped_games
+    		group by unq_game_id) as q1
+    		where t1 > 3)) as foo)
+    		select store,date_recorded,count(store) from (
+    		select * from jjj where
+    		(unq_game_id, date_recorded, price_on_x) in (select unq_game_id,date_recorded,min(price_on_x) as m1 from jjj
+    		group by unq_game_id,date_recorded)) as q5
+    		group by store,date_recorded
+        """).as(simple *)  
+    }
+  }
+  
+}

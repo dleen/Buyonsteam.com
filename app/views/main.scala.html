@@ -46,7 +46,7 @@
             case (game, steamgame, price) => {
             <tr>
               <td><img id="table-image" src="@game.imgUrl"></img></td>
-              <td><a href="@routes.Application.gameP(game.name)">@game.name</a></td>
+              <td><a href="@routes.Application.gameR(game.name)">@game.name</a></td>
               <td>$@nicePrice(price.priceOnX)</td>
               <td>@steamgame.map(y => if(y.metacritic == 0) <em>n/a</em>
                 else y.metacritic).getOrElse{<em>n/a</em>}</td>

@@ -5,6 +5,9 @@ import play.api.libs.json.Json._
 import play.api.mvc.Action
 import play.api.mvc.Controller
 
+import play.api.data._
+import play.api.data.Forms._
+
 import models._
 import views._
 
@@ -12,6 +15,18 @@ import java.util.Date
 
 object Application extends Controller {
 
+  val scomp = StoreComparison.timeLine
+  
+  val storec = scomp groupBy(x => x.store)
+  val storesort = storec mapValues(x => x.sortBy(y => y.dateRecorded))
+  val s5 = storec.mapValues(x => x.map(y => y.dateRecorded.getTime)).head._2
+  val s1 = storesort mapValues(x => x.map(y => y.count))
+  val s2 = storesort.map(x => toJson(Map("name" -> toJson(x._1), "data" -> toJson(x._2.map(y=>toJson(Map("x" -> toJson(y.dateRecorded.getTime), "y" -> toJson(y.count)))))))).toList
+  val s3 = toJson(s2).toString
+  println(s3)
+  
+  def sc = Action{ Ok(html.storecomp(s3)) }
+  
   // Route: game
   def gameR(name: String) = gameQ(name)
 
@@ -129,9 +144,10 @@ object Application extends Controller {
     Ok(html.manmatch(DataCleanup.matchManually(page)))
   }
 
-  def matchem(id1: Int, id2: Int, page: Int) = Action {
-    Ok(DataCleanup.equateIds(id1, id2))
-    //Redirect(routes.Application.manualMatching(page))
+  def matchem(page: Int, selectedTerm: List[String] = List()) = Action {
+    //selectedTerms.foreach(x => DataCleanup.equateIds(x._1, x._2))
+    selectedTerm.map(x => println(x))
+    Redirect(routes.Application.manualMatching(page))
   }
 
   // Autocomplete

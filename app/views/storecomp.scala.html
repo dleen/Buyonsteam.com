@@ -1,0 +1,91 @@
+@(compList: String)
+
+@import viewhelpers.ViewHelp._
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<title>Buy Or Wait</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/bootstrap.min.css")">
+	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/bootstrap-responsive.css")">
+	<link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("stylesheets/jquery-ui-1.9.1.custom.css")">
+	<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+	<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+</head>
+<body>
+
+	<div class="container-fluid">
+
+		<div class="row-fluid" id="comp-chart">
+		</div>
+
+	</div>
+
+	<script src="http://code.jquery.com/jquery-latest.min.js"></script> 
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/modules/exporting.js"></script>
+	<script src="@routes.Assets.at("javascripts/jquery-ui-1.9.1.custom.min.js")"></script> 
+	<script src="@routes.Assets.at("javascripts/bootstrap.min.js")"></script> 
+	<script src="@routes.Assets.at("javascripts/underscore-min.js")"></script> 
+	<script type="text/javascript">
+		var data1 = jQuery.parseJSON('@Html(compList)');
+	</script>
+	<script type="text/javascript">
+$(function () {
+    var chart;
+    $(document).ready(function() {
+        chart = new Highcharts.Chart({
+            chart: {
+                renderTo: 'comp-chart',
+                type: 'area'
+            },
+            title: {
+                text: 'Historic and Estimated Worldwide Population Distribution by Region'
+            },
+            subtitle: {
+                text: 'Source: Wikipedia.org'
+            },
+            xAxis: {
+                type: 'datetime',
+    dateTimeLabelFormats: { // don't display the dummy year
+    day: '%e. %b',
+    week: '%e. %b'
+}
+},
+            yAxis: {
+                title: {
+                    text: 'Percent'
+                }
+            },
+            tooltip: {
+                formatter: function() {
+                        return ''+
+                        this.x +': '+ Highcharts.numberFormat(this.percentage, 1) +'% ('+
+                        Highcharts.numberFormat(this.y, 0, ',') +' millions)';
+                }
+            },
+            plotOptions: {
+                area: {
+                    stacking: 'percent',
+                    lineColor: '#ffffff',
+                    lineWidth: 1,
+                    marker: {
+                        lineWidth: 1,
+                        lineColor: '#ffffff'
+                    }
+                }
+            },
+            series: data1
+        });
+    });
+    
+});
+	</script>
+
+
+
+
+</body>
+</html>

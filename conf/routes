@@ -8,15 +8,14 @@ GET	/						controllers.Application.index
 # Find a game or return list of possible matches
 GET /game					controllers.Application.gameR(g ?= "")
 
-# Find exact game by name
-GET /gamex					controllers.Application.gameP(g ?= "")
-
 GET /manmatch				controllers.Application.manualMatching(p: Int ?= 0)
 
+GET /comp					controllers.Application.sc
 GET /sample					controllers.Application.sample(n ?= "dishonored")
 
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
-POST /matchem				controllers.Application.matchem(id1: Int, id2: Int, p: Int ?= 0)
+
+POST /matchem				controllers.Application.matchem(p: Int ?= 0)
 
 # Able to search for arbitrary game right from the url
 GET	/:name					controllers.Application.gameQ(name: String)
