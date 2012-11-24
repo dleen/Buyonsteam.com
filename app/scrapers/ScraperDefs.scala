@@ -11,7 +11,6 @@ import akka.util.duration.intToDurationInt
 
 import play.api._
 
-
 import models._
 
 abstract class Scraper extends Actor
@@ -27,12 +26,13 @@ object Scraper {
     // "$59.99" -> 59.99 
     // "$59.99 $49.99" -> 49.99 
     // "$59.99$49.99" -> 49.99 
-    if (price.contains('$')) {
+    if (price == "Free" || price == "Demo" || price == "") 0
+    else if (price.contains('$')) {
       if (price.contains('%')) {
         val ind = price.indexOf('%')
         rm$(price.drop(ind + 1))
       }
-      price.split('$').flatMap(_.split(' ')).filterNot(_.isEmpty).map(_.toDouble).min
+      price.split('$').flatMap(_.split(' ')).filterNot(_.isEmpty).map(x => $anitizer(x)).min
     } else {
       try {
         price.toDouble
