@@ -16,6 +16,9 @@ case class GwithP(g: Game, p: Price)
 
 case class GSwP(sg: SteamGame, gwp: GwithP)
 
+ case class MatchedIds(selectedTerm: List[String])
+
+
 object GSwP {
 
   def insertGame(x: GSwP) = {
@@ -55,15 +58,15 @@ case class DataCleanup(sim: Double, n1: String, id1: Int, url1: String,
 object DataCleanup {
 
   val simple = {
-    get[Double]("a") ~
-      get[String]("b") ~
-      get[Int]("c") ~
-      get[String]("d") ~
-      get[String]("e") ~
-      get[Int]("f") ~
-      get[String]("g") map {
-        case sim ~ n1 ~ url1 ~ id1 ~ n2 ~ id2 ~ url2 =>
-          DataCleanup(sim, n1, url1, id1, n2, id2, url2)
+    get[Double]("similarity") ~
+      get[String]("scraped_games.n1.name") ~
+      get[Int]("scraped_games.n1.unq_game_id") ~
+      get[String]("scraped_games.n1.store_url") ~
+      get[String]("scraped_games.n2.name") ~
+      get[Int]("scraped_games.n2.unq_game_id") ~
+      get[String]("scraped_games.n2.store_url") map {
+        case sim ~ n1 ~ id1 ~ url1 ~ n2 ~ id2 ~ url2 =>
+          DataCleanup(sim, n1, id1, url1, n2, id2, url2)
       }
   }
 
@@ -98,31 +101,32 @@ object DataCleanup {
     }
   }
 
-  def matchManually(page: Int = 0, pageSize: Int = 10) = {
+  def matchManually(page: Int = 0, pageSize: Int = 25, filter: String = "%") = {
 
     val offset = pageSize * page
 
     val matchedPairs = DB.withConnection { implicit connection =>
       SQL(
         """
-        with matched(a,b,c,d,e,f,g) as (
+      select *, count(*) over() as full_count from (
           SELECT distinct on(n1.unq_game_id,n2.unq_game_id) cast(similarity(n1.name, n2.name) as double precision), 
-          n1.name, n1.unq_game_id, n1.store_url, n2.name, n2.unq_game_id, n2.store_url
-          FROM   scraped_games n1
-          JOIN   scraped_games n2 ON n1.unq_game_id < n2.unq_game_id AND n1.store != n2.store 
-          AND lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3))
-          order by n1.unq_game_id, n2.unq_game_id, n1.name, n2.name )
-      select *, count(*) over() as full_count
-      from matched
-      order by a desc, b, c
+          n1.name as "n1.name", n1.unq_game_id as "n1.unq_game_id", n1.store_url as "n1.store_url",
+          n2.name as "n2.name", n2.unq_game_id as "n2.unq_game_id", n2.store_url as "n2.store_url"
+          FROM (select * from scraped_games where name ilike {filter}) n1, (select * from scraped_games where name ilike {filter}) n2 where
+           lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3)) 
+           AND n1.id < n2.id and n1.unq_game_id < n2.unq_game_id
+           and n1.store <> n2.store
+           and levenshtein(n1.name,n2.name)<15) as q1
+      order by similarity desc, "n1.unq_game_id"
       limit {pagesize} offset {offset}
-      """).on('pagesize -> pageSize, 'offset -> offset)
+      """).on('pagesize -> pageSize, 'offset -> offset, 'filter -> ("%" + filter + "%"))
         .as(DataCleanup.simple ~ get[Long]("full_count") *) map {
           case a ~ b => (a, b)
         }
     }
-
+    if (!matchedPairs.isEmpty) {
     Page(matchedPairs.map(_._1), page, offset, matchedPairs.map(_._2).head)
+    } else Page(Seq(DataCleanup(0, "", 0, "", "", 0, "")), 0, 0, 0)
 
   }
 
@@ -247,17 +251,30 @@ object SearchResult {
   }
 
   def singleOrList(name: String): List[SearchResult] = {
-    DB.withConnection { implicit connection =>
+    val single = DB.withConnection { implicit conection =>
       SQL("""
-    		  select *, cast(similarity(name,{name}) as double precision), count(unq_game_id) over() as c1 from (
-    		  select distinct on(unq_game_id) * from (
-    		  select * from scraped_games
-    		  left join price_history on game_id = unq_game_id
-    		  where name % {name}) as s1
-    		  order by unq_game_id, date_recorded desc) as s2
-    		  order by similarity desc
+        select *, cast(similarity(name,{name}) as double precision), count(unq_game_id) over() as c1 from (
+        select distinct on(unq_game_id) * from (
+        select * from scraped_games 
+        left join price_history on game_id = scraped_games.id
+        where name = {name}) as q1) as q2 
       """).on('name -> name).as(withCount *)
     }
+
+    val list = DB.withConnection { implicit connection =>
+      SQL("""
+          select *, cast(similarity(name,{name}) as double precision), count(unq_game_id) over() as c1 from (
+          select distinct on(unq_game_id) * from (
+          select * from scraped_games
+          left join price_history on game_id = scraped_games.id
+          where unq_game_id in (select unq_game_id from scraped_games where name % {name})) as s1
+          order by unq_game_id, date_recorded desc) as s2
+          order by similarity desc
+      """).on('name -> name).as(withCount *)
+    }
+
+    if (!single.isEmpty) single ::: list.tail
+    else list
   }
 
 }

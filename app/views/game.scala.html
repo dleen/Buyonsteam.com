@@ -22,7 +22,7 @@
 
 		<div class="row-fluid">
 			<div id="my-hero">
-				<h1>@{if (gamePrices.isEmpty) "No Name" else gamePrices.head.g.name }</h1>
+				<h1>@{if (gamePrices.isEmpty) "No Name" else gamePrices.head.g.name}</h1>
 			</div>
 			<div id="small-search">
 				<form class="form-search" action="@routes.Application.gameR()">
@@ -35,7 +35,7 @@
 			<table class="table table-striped table-bordered">
 				<thead>
 					<tr>
-						<th>Name</th>
+						<th>Related Games</th>
 						<th>Store</th>
 						<th>Price</th>
 						<th>Similarity</th>
@@ -44,7 +44,7 @@
 				<tbody>
 					@gameList.map { x =>
 					<tr>
-						<td> @x.g.g.name </td>
+						<td> <a href="@routes.Application.gameR(x.g.g.name)"> @x.g.g.name </a> </td>
 						<td> @x.g.g.store </td>
 						<td> @x.g.p.priceOnX </td>
 						<td> @x.sim.toString.take(4) </td>

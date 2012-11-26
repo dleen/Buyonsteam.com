@@ -169,3 +169,7 @@ body {
   color: #f9fafc;
   text-align: center;
 }
+
+#fullwidthtable table {
+  width: 700px;
+}

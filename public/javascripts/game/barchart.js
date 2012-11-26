@@ -109,7 +109,7 @@ $(function () {
                 			click: function (d) { location.href = this.options.url; }
                 		}
                 	},
-                	minPointLength: 30,
+                	minPointLength: 50,
                 	pointWidth: 40
                 }
             },

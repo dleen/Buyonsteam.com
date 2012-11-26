@@ -54,7 +54,7 @@ object Application extends Controller {
   // Search listings page. Route: /:name
   def gameQ(name: String) = {
     val avail = SearchResult.singleOrList(name) sortBy (x => -x.sim)
-    val exact = avail filter (x => (x.sim == 1.0 || x.cnt == 1))
+    val exact = avail filter (x => ((1 - x.sim) < 0.01 || x.cnt == 1))
 
     if (avail.isEmpty) Action { Ok("Nothing found gameQ") }
     else if (exact.length == 1) {
@@ -62,13 +62,17 @@ object Application extends Controller {
         val g = Game.storeAllPrice(exact.head.g.g.name)
 
         if (g.isEmpty) Ok("Error")
-        else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap)), avail.tail))
+        else Ok(html.game(mostRecent(g), priceHist(g), 
+          PriceStats.game(exact.head.g.g.name).map(_.shortStoreName(nameMap)), 
+          avail.tail.take(5)))
       }
     } else Action {
       val g = Game.storeAllPrice(avail.head.g.g.name)
 
       if (g.isEmpty) Ok("Error")
-      else Ok(html.game(mostRecent(g), priceHist(g), PriceStats.game(avail.head.g.g.name).map(_.shortStoreName(nameMap)), avail.tail))
+      else Ok(html.game(mostRecent(g), priceHist(g), 
+        PriceStats.game(avail.head.g.g.name).map(_.shortStoreName(nameMap)), 
+        avail.tail.take(5)))
     }
   }
 
@@ -78,15 +82,22 @@ object Application extends Controller {
    * **************
    */
 
+   val testForm = Form(
+    mapping(
+    "selectedTerm" -> list(text)
+    )(MatchedIds.apply)(MatchedIds.unapply)
+    )
+
   // Manually matching duplicate names
-  def manualMatching(page: Int) = Action {
-    Ok(html.manmatch(DataCleanup.matchManually(page)))
+  def manualMatching(page: Int, filter: String) = Action {
+    Ok(html.manmatch(DataCleanup.matchManually(page, filter = (filter)), filter, testForm))
   }
 
-  def matchem(page: Int, selectedTerm: List[String] = List()) = Action {
-    //selectedTerms.foreach(x => DataCleanup.equateIds(x._1, x._2))
-    selectedTerm.map(x => println(x))
-    Redirect(routes.Application.manualMatching(page))
+  def matchem(page: Int, filter: String) = Action { implicit request =>
+    val selected = testForm.bindFromRequest.get
+    val twp = selected.selectedTerm.map(x => x.split(',').toList)
+    twp.map(x => DataCleanup.equateIds(x(0).toInt, x(1).toInt))
+    Redirect(routes.Application.manualMatching(page, filter))
   }
 
   // Autocomplete

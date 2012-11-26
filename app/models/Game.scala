@@ -34,7 +34,7 @@ object Game {
     // The dates on which prices were recorded
     val dates = gp map (_.p.dateRecorded.getTime)
     // The most recent dates
-    val recentGames = gp filter (_.p.dateRecorded.getTime == dates.max)
+    val recentGames = gp filter (_.p.dateRecorded.getTime >= dates.max - 24 * 60 * 60 * 1000)
     // If more than one price for the most recent date, pick the most recent price
     val rg = recentGames.groupBy(_.g.store).mapValues(_.sortBy(y => -y.p.id.get)).map(_._2.head).toList
 

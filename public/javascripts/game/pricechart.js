@@ -26,7 +26,7 @@ yAxis: {
 plotOptions: {
     line: {
         dataLabels: {
-            enabled: true
+            enabled: false
         }
     }
 },
