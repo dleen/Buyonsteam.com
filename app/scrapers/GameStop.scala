@@ -37,7 +37,7 @@ object GameStopScraper {
   private val name = "GameStop"
 
   private val storeHead = "http://www.gamestop.com/browse/pc?nav=2b"
-  private val storeTail = ",138c-ffff2418"
+  private val storeTail = ",138c-ffff2418-51"
 
   val finalPage = {
     val url = storeHead + storeTail
