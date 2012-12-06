@@ -39,3 +39,7 @@ app/controllers/forTestPurposes.sc
 .ensime_lucene/*
 
 .ensime
+
+*.prefs
+
+*.prefs

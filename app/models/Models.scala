@@ -16,7 +16,7 @@ case class GwithP(g: Game, p: Price)
 
 case class GSwP(sg: SteamGame, gwp: GwithP)
 
- case class MatchedIds(selectedTerm: List[String])
+case class MatchedIds(selectedTerm: List[String])
 
 
 object GSwP {
@@ -112,7 +112,8 @@ object DataCleanup {
           SELECT distinct on(n1.unq_game_id,n2.unq_game_id) cast(similarity(n1.name, n2.name) as double precision), 
           n1.name as "n1.name", n1.unq_game_id as "n1.unq_game_id", n1.store_url as "n1.store_url",
           n2.name as "n2.name", n2.unq_game_id as "n2.unq_game_id", n2.store_url as "n2.store_url"
-          FROM (select * from scraped_games where name ilike {filter}) n1, (select * from scraped_games where name ilike {filter}) n2 where
+          FROM (select * from scraped_games where name ilike {filter}) n1, 
+          (select * from scraped_games where name ilike {filter}) n2 where
            lower(substring(n1.name from 1 for 3)) = lower(substring(n2.name from 1 for 3)) 
            AND n1.id < n2.id and n1.unq_game_id < n2.unq_game_id
            and n1.store <> n2.store

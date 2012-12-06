@@ -17,6 +17,8 @@ import java.util.Date
 
 object Application extends Controller {
   
+  
+  
   // Comparison graph of deals across stores
   def compData(sc: List[StoreComparison]) = {
     val sg = sc groupBy (_.store) mapValues (x => x.sortBy(_.dateRecorded))
@@ -98,6 +100,15 @@ object Application extends Controller {
     val twp = selected.selectedTerm.map(x => x.split(',').toList)
     twp.map(x => DataCleanup.equateIds(x(0).toInt, x(1).toInt))
     Redirect(routes.Application.manualMatching(page, filter))
+  }
+  
+  def manualDelete(name: String) = Action {
+	  Ok(html.mandelete(Game.findByName(name), name))
+  }
+  
+    def deletem(id: Long, name: String) = Action { 
+    Game.delete(id)
+    Redirect(routes.Application.manualDelete(name))
   }
 
   // Autocomplete

@@ -9,6 +9,7 @@ GET	/						controllers.Application.index
 GET /game					controllers.Application.gameR(g ?= "")
 
 GET /manmatch				controllers.Application.manualMatching(p: Int ?= 0, f: String ?= "")
+GET /mandelete				controllers.Application.manualDelete(n: String ?= "")
 
 GET /comp					controllers.Application.sc
 GET /sample					controllers.Application.sample(n ?= "dishonored")
@@ -16,6 +17,7 @@ GET /sample					controllers.Application.sample(n ?= "dishonored")
 GET	/autocompleteSearch		controllers.Application.autocompleteSearch(term: String ?= "")
 
 POST /matchem				controllers.Application.matchem(p: Int ?= 0, f: String ?= "")
+POST /deletem				controllers.Application.deletem(p: Long ?= -1, n: String ?= "")
 
 # Able to search for arbitrary game right from the url
 GET	/g/:name				controllers.Application.gameQ(name: String)

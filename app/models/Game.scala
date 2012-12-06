@@ -76,52 +76,16 @@ object Game {
     }
   }
 
-  def storeAllPriceId(id: Int) = {
-    DB.withConnection { implicit connection =>
-      SQL("""
-        select * from
-        (select * from scraped_games
-          where scraped_games.unq_game_id = {id}
-      ) as test1
-      left join
-      price_history on test1.id = game_id
-      order by date_recorded desc
-      """).on('id -> id).as(withPrice *)
-    }
-  }
-
-  // Retrieve a game by id
-  def findById(id: Long): Option[Game] = {
-    DB.withConnection { implicit connection =>
-      SQL("select * from scraped_games where id = {id}").on('id -> id).as(Game.simple.singleOpt)
-    }
-  }
-
-  // List of distinct games from different stores with this name
-  def idByName(name: String) = {
-    DB.withConnection { implicit connection =>
-      SQL("""
-  			select distinct on (id) id from scraped_games
-  			where unq_game_id =
-  			(select distinct on (unq_game_id) unq_game_id from scraped_games where lower(name) = {name}) 
-  			""").on('name -> name).as(scalar[Long] *)
-    }
-  }
 
   // Retrieve a game by name
   def findByName(name: String) = {
     DB.withConnection { implicit connection =>
       SQL("""
-  			select * from (
-  				select distinct on (unq_game_id) *, cast(similarity(name, {name}) as double precision)
-  				from scraped_games 
-  				where name % {name}
-  				order by unq_game_id, id asc) as temp
-  		order by similarity desc
+  			select * from scraped_games where name % {name}
   		""")
-        .on('name -> name).as(Game.simple ~ get[Double]("similarity") *) map {
-          case a ~ b => (a, b)
-        }
+        .on('name -> name).as(Game.simple ~ get[Long]("unq_game_id") *) map {
+        case a ~ b => (a, b)
+      }
     }
   }
 
@@ -168,6 +132,21 @@ object Game {
           'store_url -> that.storeUrl,
           'img_url -> that.imgUrl).executeInsert()
     }
+  }
+  
+  def delete(id: Long) = {
+    DB.withConnection { implicit connection =>
+      SQL(
+          """delete from steam_games where steam_games.game_id = {id}
+    		  """).on('id -> id).executeUpdate()
+          SQL(
+          """delete from price_history where price_history.game_id = {id};
+    		  """).on('id -> id).executeUpdate()
+    		        SQL(
+          """delete from scraped_games where scraped_games.id = {id}
+    		  """).on('id -> id).executeUpdate()
+      }
+    
   }
 
 }
