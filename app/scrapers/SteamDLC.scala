@@ -52,7 +52,7 @@ object SteamDLCScraper {
 
   val finalPage = {
     val url = storeHead + "1"
-    val ping = catching(classOf[java.net.SocketTimeoutException], 
+    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[java.net.SocketException],
       classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
     .timeout(3000).execute()
