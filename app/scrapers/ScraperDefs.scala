@@ -9,6 +9,9 @@ import akka.actor._
 import akka.util.Duration
 import akka.util.duration.intToDurationInt
 
+import scala.util.control.Exception._
+
+
 import play.api._
 
 import models._
@@ -49,9 +52,7 @@ object Scraper {
       else {
         //println(count)
         checker(count + 1,
-          catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException],
-            classOf[java.net.SocketException], classOf[java.lang.StringIndexOutOfBoundsException],
-            classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
+          allCatch opt Jsoup.connect(url)
             .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
             .timeout(3000).execute())
       }

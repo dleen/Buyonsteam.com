@@ -13,6 +13,8 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.postgresql.util.PSQLException
 
+import scala.util.control.Exception._
+
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
@@ -41,8 +43,7 @@ object GamersGateScraper {
 
   val finalPage = {
     val url = storeHead + "1"
-    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[java.net.SocketException], classOf[java.lang.StringIndexOutOfBoundsException],
-      classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
+    val ping = allCatch opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
       .timeout(3000).execute()
     val doc = Scraper.checkSite(url, ping).getOrElse(org.jsoup.nodes.Document.createShell(""))
@@ -59,7 +60,7 @@ object GamersGateScraper {
   private def getAll(pageN: Int): GameFetchedG = {
 
     val url = GamersGateScraper.storeHead + pageN.toString
-    val ping = catching(classOf[java.net.SocketTimeoutException], classOf[org.jsoup.HttpStatusException], classOf[java.lang.ExceptionInInitializerError]) opt Jsoup.connect(url)
+    val ping = allCatch opt Jsoup.connect(url)
       .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
       .timeout(3000).execute()
 
