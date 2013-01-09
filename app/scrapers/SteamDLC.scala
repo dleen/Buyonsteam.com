@@ -39,8 +39,8 @@ class SteamDLCScraper extends Scraper {
 
 object SteamDLCScraper {
 
-  private def appId(url: String): Int = {
-    url.substring(34, url.indexOf('/', 34)).toInt
+  private def appId(url: String): Option[Int] = {
+    allCatch opt url.substring(34, url.indexOf('/', 34)).toInt
   }
 
   private def scorefS(meta: String): Int = {
@@ -101,7 +101,7 @@ object SteamDLCScraper {
       val releaseDate = html.getElementsByClass("search_released").text
       val meta = scorefS(html.getElementsByClass("search_metascore").text)
       val gameUrl = html.select("a").attr("href")
-      val gameId = appId(gameUrl)
+      val gameId = appId(gameUrl).getOrElse(0)
 
       SteamGame(gameId, name, releaseDate, meta, 0)
     }
